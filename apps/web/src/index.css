@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    /* Default Fallback (Black) */
+    --primary: #000000;
+    --primary-fg: #ffffff;
+    background-color: #f3f4f6;
+    /* Gray-100 */
+}

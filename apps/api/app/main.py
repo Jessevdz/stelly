@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.middleware import TenantMiddleware
-from app.api.v1 import sys
+from app.api.v1 import sys, store
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -17,6 +17,7 @@ app.add_middleware(TenantMiddleware)
 
 # Routers
 app.include_router(sys.router, prefix="/api/v1/sys", tags=["System"])
+app.include_router(store.router, prefix="/api/v1/store", tags=["Storefront"])
 
 
 @app.get("/")
