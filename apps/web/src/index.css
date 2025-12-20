@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
     /* Default Fallback (Black) */
@@ -8,4 +6,12 @@
     --primary-fg: #ffffff;
     background-color: #f3f4f6;
     /* Gray-100 */
+}
+
+@theme {
+    /* If you strictly migrate to v4 CSS-first configuration, 
+     you would define theme extensions here. 
+     For now, your tailwind.config.js will still be respected 
+     by the @tailwindcss/postcss plugin.
+  */
 }
