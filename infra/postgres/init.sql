@@ -8,8 +8,3 @@ CREATE TABLE IF NOT EXISTS public.tenants (
     domain VARCHAR(255) UNIQUE NOT NULL,
     theme_config JSONB DEFAULT '{}'
 );
-
--- Insert a default tenant for testing Phase 2 later
-INSERT INTO public.tenants (name, schema_name, domain, theme_config)
-VALUES ('Pizza Local', 'tenant_pizza', 'pizza.localhost', '{"primary_color": "red"}')
-ON CONFLICT DO NOTHING;
