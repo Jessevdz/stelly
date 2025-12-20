@@ -2,122 +2,139 @@
 
 **A White-Label, Managed Micro-SaaS for Restaurant Order Management.**
 
----
-
 ## 1. Product Vision
 
-**OmniOrder** is a high-performance, rapid-deployment order management platform designed for scale and isolation.
+**OmniOrder** is a production-grade, rapid-deployment order management platform designed for scale, isolation, and seamless branding.
 
-Unlike generic platforms, OmniOrder offers a **fully white-labeled experience**. The platform administrator can "spin up" a new restaurant instance instantly, with the frontend automatically adapting to the restaurant's brand identity (colors, fonts, logos, and layout spacing) without touching a single line of code.
+Unlike generic platforms, OmniOrder offers a **fully white-labeled experience**. The platform administrator can "spin up" a new restaurant instance instantly. Critical to our value proposition is that we support **Custom Domains** (e.g., `order.joespizza.com`) alongside subdomains, with the frontend automatically adapting to the restaurant's brand identity (colors, fonts, logos) and hardware environment.
 
----
+## 2. The OmniOrder Ecosystem (Stakeholders)
 
-## 2. High-Level Architecture
+The platform is divided into four distinct interaction contexts, each catering to a specific user persona within the tenant lifecycle.
 
-The system follows a modern **Monorepo** structure containing a React frontend and a Python FastAPI backend.
+1. **The Super Admin (Platform Owner):**
+    * **Goal:** Manage the SaaS business, provision new tenants, and monitor fleet health.
+    * **Context:** Uses the **Global Admin Portal**. Decoupled from restaurant data.
 
-* **Request Routing:** The application determines the "Restaurant" context based on the incoming subdomain (e.g., `burger.omniorder.com`).
-* **Dynamic Theming (Flow A):** On load, the frontend fetches a configuration object from the backend's `public` schema and injects brand colors into CSS variables at runtime.
-* **Backend Isolation (Flow B):** For operational requests (like ordering), a specialized FastAPI middleware intercepts the request, identifies the tenant, and dynamically switches the PostgreSQL `search_path` to the isolated tenant schema before executing queries.
+
+2. **The Restaurant Owner (Tenant):**
+    * **Goal:** Manage menus, prices, and business hours.
+    * **Context:** Uses the **Manager Dashboard**. Data is strictly isolated to their schema.
+
+
+3. **The Kitchen Staff (End User):**
+    * **Goal:** View and fulfill orders in a high-stress, messy environment.
+    * **Context:** Uses the **Kitchen Display System (KDS)** on tablets. Requires high reliability and offline resilience.
+
+
+4. **The Hungry Customer (Public):**
+    * **Goal:** Order food quickly on a mobile device.
+    * **Context:** Uses the **Public Storefront**. Accessed via Custom Domains (e.g., `pizza.com`) with full brand immersion.
+
+
+## 3. High-Level Architecture
+
+The system follows a modern **Monorepo** structure containing a React frontend, a Python FastAPI backend, and a robust routing layer.
+
+### The "Edge" Routing Layer
+
+To support custom domains, we utilize a reverse proxy (Nginx/Caddy) strategy before hitting the application logic.
+
+* **Scenario A (Subdomain):** Request to `burger.omniorder.com`. The app extracts `burger` and queries the tenant config.
+* **Scenario B (Custom Domain):** Request to `order.joespizza.com`. The Middleware inspects the `Host` header, queries the `public.tenants` table for a `custom_domain` match, and resolves the Tenant ID.
+
+### Core Flows
+
+* **Dynamic Theming (Flow A):** On load, the frontend fetches a configuration object. This triggers not just CSS variable injection, but also **Dynamic Asset Loading** (fetching Google Fonts on the fly).
+* **Backend Isolation (Flow B):** A middleware interceptor identifies the tenant via the resolved ID and switches the PostgreSQL `search_path` to the specific tenant schema.
 
 ```mermaid
 graph LR
-    subgraph Users
-        SuperAdmin[Super Admin<br/>Platform Owner]
-        Owner[Restaurant Owner<br/>Tenant]
+    subgraph Clients
+        Admin[Super Admin]
+        Owner[Restaurant Owner]
         Chef[Kitchen Staff]
-        Customer[Hungry Customer]
+        Cust[Customer]
     end
 
-    subgraph EntryPoints [Frontend Applications]
-        SA_Portal[<b>Super Admin Portal</b><br/>admin.omniorder.com]
-        Rest_Dashboard[<b>Manager Dashboard</b><br/>tenant.omniorder.com/admin]
-        KDS[<b>Kitchen Display System</b><br/>tenant.omniorder.com/kitchen]
-        PublicStore[<b>Public Storefront</b><br/>tenant.omniorder.com]
+    subgraph EdgeLayer [Routing & Resolution]
+        Proxy[Reverse Proxy / Load Balancer]
+        Resolution{Resolve Tenant}
     end
 
-    subgraph BackendSystem [Backend API]
-        API[FastAPI Gateway]
-        Router{Router}
+    subgraph AppServer [FastAPI Backend]
+        Middleware[Tenant Middleware]
+        API[API Endpoints]
+        Worker[Async Worker<br/>Celery/Redis]
     end
 
     subgraph DataLayer [PostgreSQL]
-        PublicDB[(Public Schema<br/>Tenants & Config)]
-        TenantDB[(Tenant Schema<br/>Orders & Menu)]
+        PublicDB[(Public Schema<br/>Routing & Config)]
+        TenantDB[(Tenant Schemas<br/>Orders & Menu)]
     end
 
-    %% Super Admin Flow
-    SuperAdmin --> SA_Portal
-    SA_Portal --> API
-    API -->|Manage Tenants| PublicDB
+    %% Flows
+    Admin -->|admin.omniorder.com| Proxy
+    Owner -->|tenant.omniorder.com| Proxy
+    Chef -->|tenant.omniorder.com/kitchen| Proxy
+    Cust -->|order.joespizza.com| Proxy
 
-    %% Restaurant Owner Flow
-    Owner --> Rest_Dashboard
-    Rest_Dashboard --> API
-    API -->|Update Prices/Menu| TenantDB
+    Proxy -->|Host Header| Resolution
+    Resolution -- Lookup --> PublicDB
+    Resolution -->|Inject Tenant ID| Middleware
+    Middleware -->|Set Search Path| TenantDB
+    Middleware --> API
+    API -.->|Async Tasks| Worker
+    Worker -->|Batch Migrations| TenantDB
 
-    %% Kitchen Flow
-    Chef --> KDS
-    KDS -->|WebSocket/Poll| API
-    API -->|Read Active Orders| TenantDB
-
-    %% Customer Flow
-    Customer --> PublicStore
-    PublicStore --> API
-    API -->|Create Order| TenantDB
 ```
 
 ---
 
-## 3. Technology Stack
+## 4. Technology Stack
 
 ### Frontend (Client)
 
 * **Core:** React.js 18+ with Vite.
 * **Styling Engine:** **Tailwind CSS**.
-* *Key Strategy:* We configure `tailwind.config.js` to use CSS Variables (e.g., `bg-primary` maps to `var(--color-primary)`).
-
-
-* **State Management:** React Query (Server State) & Zustand (Theme/UI State).
+* **State Management:** React Query (Server State) & Zustand (UI State).
+* **Hardware Integration:** Usage of `navigator.wakeLock` API for KDS tablets.
 
 ### Backend (Server)
 
 * **Framework:** FastAPI (Python 3.11+).
 * **Database:** PostgreSQL 16+.
 * **Isolation Strategy:** **Schema-per-Tenant**.
+* **Async Processing:** **Redis & Celery** (Handle WebSocket broadcasts and Batch Migrations).
 
 ---
 
-## 4. Theming & Customization Architecture
+## 5. Theming & Customization Architecture
 
-This is the core differentiator. We do not build separate apps; we build one "chameleon" app.
+We do not build separate apps; we build one "chameleon" app that adapts its skin and assets at runtime.
 
 ### A. The Data Strategy
 
-The styling configuration is stored in the `public` schema in the database.
+The styling configuration is stored in the `public` schema.
 
-**Table: `public.tenants**`
+**Table: `public.tenants`**
 
 ```json
 {
   "id": "uuid",
   "name": "Pasta Paradise",
   "subdomain": "pasta",
+  "custom_domain": "orders.pastaparadise.com", 
   "theme_config": {
     "colors": {
-      "primary": "#FF5733",       // Brand Main Color
-      "secondary": "#C70039",     // Accents
-      "background": "#FFF5E1",    // Page Background
-      "text": "#2C3E50"           // Primary Text
+      "primary": "#FF5733",
+      "background": "#FFF5E1"
     },
     "typography": {
-      "fontFamily": "Inter, sans-serif",
-      "headingFont": "Playfair Display, serif"
+      "fontFamily": "Playfair Display", 
+      "fontSource": "Google"
     },
-    "layout": {
-      "borderRadius": "0.5rem",   // Rounded corners preference
-      "logoUrl": "https://s3.../pasta-logo.png"
-    }
+    "layout": { "borderRadius": "0.5rem" }
   }
 }
 
@@ -125,151 +142,105 @@ The styling configuration is stored in the `public` schema in the database.
 
 ### B. The Injection Strategy (Frontend)
 
-1. **Boot:** App loads. `App.jsx` checks the window URL.
-2. **Fetch:** Calls `GET /api/public/config`.
-3. **Inject:** A `ThemeProvider` component writes these values to the `:root` of the document.
+Crucially, we must load assets that don't exist in the bundle.
 
-```css
-/* Resulting DOM State */
-:root {
-  --color-primary: #FF5733;
-  --color-bg: #FFF5E1;
-  --radius-base: 0.5rem;
-}
+1. **Boot:** `App.jsx` calls `GET /api/public/config`.
+2. **Asset Loader:** A `FontLoader` component parses `theme_config.typography.fontFamily`, constructs a Google Fonts URL, and dynamically appends a `<link>` tag to the document `<head>`.
+3. **CSS Injection:** A `ThemeProvider` writes hex codes to `:root` CSS variables.
+4. **Result:** The browser downloads the font and repaints the UI instantly to match the brand.
 
-```
 
-4. **Render:** Tailwind classes like `bg-primary` or `rounded-base` automatically display the correct brand.
+## 6. Database Design & Operations
 
----
-
-## 5. Database Design & Isolation
-
-We utilize **PostgreSQL Schemas** to achieve strong data isolation while keeping the "System Data" (like themes) accessible globally.
+We utilize **PostgreSQL Schemas** for strong isolation.
 
 ### 1. `public` Schema (Shared System Data)
 
-Managed by the Super Admin.
-
 * **`tenants` table:**
-* `subdomain` (Index, Unique) -> Used for routing.
-* `schema_name` -> Used for DB switching.
-* `theme_config` (JSONB) -> **Stores the branding.**
+* `subdomain` (Index, Unique).
+* `custom_domain` (Index, Unique) -> Critical for custom URL support.
+* `schema_name`.
+* `theme_config` (JSONB).
 
 
 
 ### 2. Tenant Schemas (e.g., `tenant_bobs_burgers`)
 
-Replicated for each client. Contains **only** operational data.
+Replicated for each client. Contains **only** operational data (Orders, Menu, Customers).
 
-* `orders`
-* `menu_items`
-* `customers`
+### 3. Maintenance Strategy: Batch Migrations
 
----
+Managing 1,000 schemas requires a dedicated strategy to avoid connection pool exhaustion. We do not run migrations synchronously on deployment.
 
-## 6. Repository Structure
-
-```bash
-omniorder/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── endpoints/
-│   │   │   │   ├── public.py      # Theme/Config endpoints (No Auth)
-│   │   │   │   └── orders.py      # Tenant specific endpoints
-│   │   ├── core/
-│   │   │   └── config.py
-│   │   └── middleware/            # Tenant & Schema Switcher
-│   └── manage.py                  # "Spin up" script
-├── frontend/
-│   ├── src/
-│   │   ├── components/            # Generic UI (Buttons, Cards)
-│   │   ├── theme/
-│   │   │   ├── ThemeProvider.jsx  # Logic to inject CSS vars
-│   │   │   └── defaultTheme.js    # Fallback if DB fetch fails
-│   │   └── features/              # Menu, Cart, Admin
-│   └── tailwind.config.js         # Mapped to CSS Variables
-└── docker-compose.yml
-
-```
-
----
-
-## 7. Developer Workflow: Adding a New Client
-
-You do not touch the code to add a client. You use the CLI.
-
-1. **Run Provisioning Script:**
-```bash
-# Usage: python manage.py create-tenant [Name] [Subdomain] [PrimaryColor]
-python manage.py create-tenant "Sushi Zen" "sushi" --color "#FF0000"
-
-```
+* **Day 1 (Create):** `manage.py` creates a single schema immediately.
+* **Day 2 (Update):** When deploying new features, a **Celery Worker** picks up the "Migration Job".
+* It fetches all active schemas.
+* It iterates through them in batches of 10.
+* It runs `alembic upgrade head` on the batch.
+* Failures are logged to a "Dead Letter Queue" for manual intervention.
 
 
-2. **What Happens Automatically:**
-* **DB:** Creates schema `tenant_sushi`.
-* **Migrations:** Runs Alembic on `tenant_sushi`.
-* **Routing:** Inserts row into `public.tenants` with subdomain `sushi`.
-* **Theming:** Saves the hex code `#FF0000` into the `theme_config` JSON.
+
+## 7. Application Interfaces & Personas
+
+Detailed breakdown of the interfaces mapped to the stakeholders defined in Section 2.
+
+### A. The Super Admin Portal
+
+* **URL:** `admin.omniorder.com`
+* **User:** Platform Owner.
+* **Key Features:**
+* **Tenant Provisioning:** UI to create tenants and bind custom domains.
+* **Fleet Status:** View migration status of all tenant schemas (e.g., "998/1000 Updated").
 
 
-3. **Result:**
-Visit `sushi.localhost:3000`. The site loads with "Sushi Zen" branding and Red buttons.
 
----
+### B. The Restaurant Manager Dashboard
 
-
-## 8. Admin Portals & User Interfaces
-
-OmniOrder provides three distinct user interfaces, each tailored to a specific stakeholder in the ecosystem.
-
-### A. The Super Admin Portal (Platform Management)
-
-**URL:** `https://admin.omniorder.com`
-**User:** You (The SaaS Provider)
-
-This is the "God Mode" interface. It is completely decoupled from specific restaurant data and focuses purely on tenant orchestration.
-
-* **Tenant Provisioning:** A UI form to create new restaurant instances.
-* Input: Restaurant Name, Desired Subdomain (e.g., `pizza`), Admin Email.
-* *Action:* Triggers the backend provisioning script to generate schemas and routing rules.
-
-
-* **Global Theme Editor:** Visual color picker and font selector to set the initial branding for a new client without touching JSON.
-* **Subscription Management:** Toggle tenant status (Active/Suspended) based on payment status.
-
-### B. The Restaurant Manager Dashboard (CMS)
-
-**URL:** `https://{tenant}.omniorder.com/admin`
-**User:** The Restaurant Owner / Manager
-
-A secure, password-protected backend for the specific restaurant to manage their business logic. This connects exclusively to the specific **Tenant Schema**.
-
-* **Menu Engineering:**
-* Create categories (Starters, Mains, Drinks).
-* Upload images for items.
-* **Price Adjustment:** Real-time editing of item prices (e.g., Happy Hour updates).
-* "86" Items: One-click toggling of item availability (Out of Stock).
-
-
-* **Business Settings:**
-* Configure opening hours.
-* Set tax rates and currency symbols.
+* **URL:** `{tenant}.omniorder.com/admin`
+* **User:** Restaurant Owner.
+* **Key Features:**
+* **Menu Engineering:** Upload images, set categories.
+* **Business Logic:** Set tax rates, open hours, and currency.
+* **CMS:** Real-time price adjustments.
 
 
 
 ### C. The Kitchen Display System (KDS)
 
-**URL:** `https://{tenant}.omniorder.com/kitchen`
-**User:** Chefs & Kitchen Staff
+* **URL:** `{tenant}.omniorder.com/kitchen`
+* **User:** Kitchen Staff / Chefs.
+* **Key Features (Hardware Resilience):**
+* **Hardware Wake Lock:** Utilizes `navigator.wakeLock.request('screen')` on mount to ensure the iPad/Tablet never sleeps while the app is open.
+* **Offline "Heartbeat":** The app polls the server every 30 seconds. If the heartbeat fails (internet loss), the entire UI border turns flashing RED with a "CONNECTION LOST" warning to prompt staff to switch to paper.
+* **Audio Context:** Uses Web Audio API for high-volume alerts on new orders.
 
-A high-contrast, touch-friendly interface designed for tablets mounted in the kitchen. It replaces traditional paper tickets.
 
-* **Kanban Workflow:** Orders move through columns: `Incoming` -> `Prep` -> `Ready`.
-* **Real-Time Updates:** Uses **Server-Sent Events (SSE)** or Polling to pop new orders onto the screen instantly with an audible alert.
-* **Ticket Details:** clear visualization of modifications (e.g., "NO ONIONS" highlighted in red).
-* **Performance Metrics:** Tracks how long an order stays in the "Prep" stage.
 
----
+### D. The Public Storefront
+
+* **URL:** `{custom_domain}` or `{subdomain}.omniorder.com`
+* **User:** Customer.
+* **Key Features:**
+* **Brand Immersion:** Total visual overhaul based on the injected theme.
+* **Performance:** Heavily cached menu reads.
+
+
+## 8. Developer Workflow: Adding a New Client
+
+1. **Run Provisioning Script:**
+```bash
+# Usage: python manage.py create-tenant [Name] [Subdomain] --domain [CustomDomain]
+python manage.py create-tenant "Sushi Zen" "sushi" --domain "order.sushizen.com"
+```
+
+
+2. **DNS Configuration (Manual/Automated Step):**
+* The restaurant owner adds a CNAME record: `order.sushizen.com` -> `ingress.omniorder.com`.
+
+
+3. **Result:**
+* Visitor hits `order.sushizen.com`.
+* Nginx routes to Backend.
+* Middleware sees Host header, finds `tenant_sushi` schema.
+* Frontend loads, sees "Sushi" config, injects Red colors and Japanese-style fonts.
