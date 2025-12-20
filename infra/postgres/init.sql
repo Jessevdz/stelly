@@ -1,0 +1,2 @@
+-- Database Initialization
+-- Logic: Public schema + dynamic creation of tenant schemas.
