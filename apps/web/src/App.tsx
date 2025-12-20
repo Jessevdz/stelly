@@ -4,6 +4,7 @@ import { useTenantConfig } from './hooks/useTenantConfig';
 import { MenuGrid } from './components/MenuGrid';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginPage } from './pages/admin/Login';
+import { MenuBuilder } from './pages/admin/MenuBuilder';
 
 // --- Layouts ---
 
@@ -77,14 +78,21 @@ function App() {
                     <Route element={<ProtectedRoute />}>
                         <Route path="/admin/dashboard" element={
                             <div className="p-8">
-                                <h1 className="text-2xl font-bold">Manager Dashboard</h1>
-                                <p>Welcome to the protected admin area.</p>
+                                <h1 className="text-2xl font-bold mb-4">Manager Dashboard</h1>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <a href="/admin/menu" className="block p-6 bg-white shadow rounded hover:shadow-md transition">
+                                        <h3 className="font-bold text-lg text-blue-600">Menu Builder &rarr;</h3>
+                                        <p className="text-sm text-gray-500">Add items, categories, and photos.</p>
+                                    </a>
+                                    {/* Other cards */}
+                                </div>
                             </div>
                         } />
                     </Route>
-
                     {/* Kitchen Route (Future) */}
                     <Route path="/kitchen" element={<div>Kitchen Display System (Coming Soon)</div>} />
+
+                    <Route path="/admin/menu" element={<MenuBuilder />} /> {/* New Route */}
 
                 </Routes>
             </BrowserRouter>

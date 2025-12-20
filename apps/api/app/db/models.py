@@ -31,13 +31,31 @@ class User(Base):
     role = Column(String, default="admin")  # 'admin', 'manager', 'kitchen'
 
 
+class Category(Base):
+    __tablename__ = "categories"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    rank = Column(Integer, default=0)  # For sorting order
+
+    # Relationships
+    items = relationship(
+        "MenuItem", back_populates="category", cascade="all, delete-orphan"
+    )
+
+
 class MenuItem(Base):
     __tablename__ = "menu_items"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
     price = Column(Integer, nullable=False)  # In cents
+    image_url = Column(String, nullable=True)
     is_available = Column(Boolean, default=True)
+
+    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=True)
+    category = relationship("Category", back_populates="items")
 
 
 class Order(Base):
