@@ -13,24 +13,20 @@ Unlike generic platforms, OmniOrder offers a **fully white-labeled experience**.
 The platform is divided into four distinct interaction contexts, each catering to a specific user persona within the tenant lifecycle.
 
 1. **The Super Admin (Platform Owner):**
-    * **Goal:** Manage the SaaS business, provision new tenants, and monitor fleet health.
-    * **Context:** Uses the **Global Admin Portal**. Decoupled from restaurant data.
-
+* **Goal:** Manage the SaaS business, provision new tenants, and monitor fleet health.
+* **Context:** Uses the **Global Admin Portal**. Decoupled from restaurant data.
 
 2. **The Restaurant Owner (Tenant):**
-    * **Goal:** Manage menus, prices, and business hours.
-    * **Context:** Uses the **Manager Dashboard**. Data is strictly isolated to their schema.
-
+* **Goal:** Manage menus, prices, and business hours.
+* **Context:** Uses the **Manager Dashboard**. Data is strictly isolated to their schema.
 
 3. **The Kitchen Staff (End User):**
-    * **Goal:** View and fulfill orders in a high-stress, messy environment.
-    * **Context:** Uses the **Kitchen Display System (KDS)** on tablets. Requires high reliability and offline resilience.
-
+* **Goal:** View and fulfill orders in a high-stress, messy environment.
+* **Context:** Uses the **Kitchen Display System (KDS)** on tablets. Requires high reliability and offline resilience.
 
 4. **The Hungry Customer (Public):**
-    * **Goal:** Order food quickly on a mobile device.
-    * **Context:** Uses the **Public Storefront**. Accessed via Custom Domains (e.g., `pizza.com`) with full brand immersion.
-
+* **Goal:** Order food quickly on a mobile device.
+* **Context:** Uses the **Public Storefront**. Accessed via Custom Domains (e.g., `pizza.com`) with full brand immersion.
 
 ## 3. High-Level Architecture
 
@@ -89,7 +85,6 @@ graph LR
 
 ```
 
----
 
 ## 4. Technology Stack
 
@@ -117,7 +112,7 @@ We do not build separate apps; we build one "chameleon" app that adapts its skin
 
 The styling configuration is stored in the `public` schema.
 
-**Table: `public.tenants`**
+**Table: `public.tenants**`
 
 ```json
 {
@@ -149,7 +144,6 @@ Crucially, we must load assets that don't exist in the bundle.
 3. **CSS Injection:** A `ThemeProvider` writes hex codes to `:root` CSS variables.
 4. **Result:** The browser downloads the font and repaints the UI instantly to match the brand.
 
-
 ## 6. Database Design & Operations
 
 We utilize **PostgreSQL Schemas** for strong isolation.
@@ -172,13 +166,12 @@ Replicated for each client. Contains **only** operational data (Orders, Menu, Cu
 
 Managing 1,000 schemas requires a dedicated strategy to avoid connection pool exhaustion. We do not run migrations synchronously on deployment.
 
-* **Day 1 (Create):** `manage.py` creates a single schema immediately.
+* **Day 1 (Create):** The application creates a single schema immediately upon API request.
 * **Day 2 (Update):** When deploying new features, a **Celery Worker** picks up the "Migration Job".
 * It fetches all active schemas.
 * It iterates through them in batches of 10.
 * It runs `alembic upgrade head` on the batch.
 * Failures are logged to a "Dead Letter Queue" for manual intervention.
-
 
 
 ## 7. Application Interfaces & Personas
@@ -226,21 +219,44 @@ Detailed breakdown of the interfaces mapped to the stakeholders defined in Secti
 * **Performance:** Heavily cached menu reads.
 
 
-## 8. Developer Workflow: Adding a New Client
+## 8. Operational Workflow: Onboarding a New Client
 
-1. **Run Provisioning Script:**
-```bash
-# Usage: python manage.py create-tenant [Name] [Subdomain] --domain [CustomDomain]
-python manage.py create-tenant "Sushi Zen" "sushi" --domain "order.sushizen.com"
-```
+We have moved away from CLI-based provisioning to a fully UI-driven approach in the Super Admin Portal to allow non-technical staff to onboard clients.
+
+### Step 1: Provisioning via UI
+
+The Super Admin logs into `admin.omniorder.com` and navigates to the "Tenants" view.
+
+1. Click **"Add New Tenant"**.
+2. **Form Input:**
+* **Tenant Name:** "Sushi Zen"
+* **Subdomain:** `sushi` (System checks availability instantly).
+* **Custom Domain:** `order.sushizen.com` (Optional).
+* **Theme Preset:** "Dark/Minimalist" (Sets initial JSON config).
 
 
-2. **DNS Configuration (Manual/Automated Step):**
-* The restaurant owner adds a CNAME record: `order.sushizen.com` -> `ingress.omniorder.com`.
+3. **Submission:** The Admin clicks "Create".
 
+### Step 2: System Automation (Background)
 
-3. **Result:**
-* Visitor hits `order.sushizen.com`.
-* Nginx routes to Backend.
-* Middleware sees Host header, finds `tenant_sushi` schema.
-* Frontend loads, sees "Sushi" config, injects Red colors and Japanese-style fonts.
+Upon clicking Create, the frontend hits the `POST /api/admin/tenants` endpoint.
+
+1. **Public Config:** The server inserts a record into the `public.tenants` table.
+2. **Schema Generation:** The server triggers a synchronous SQL command: `CREATE SCHEMA tenant_sushi`.
+3. **Table Hydration:** Alembic programmatically stamps the new schema with the current database head.
+4. **Admin User:** A default admin account (`admin@sushizen.com`) is created within the new schema.
+
+### Step 3: DNS Configuration
+
+The Super Admin Portal generates the necessary DNS records for the client.
+
+* **Instruction:** "Please ask the client to add the following CNAME record to their DNS provider:"
+* **Host:** `order`
+* **Value:** `ingress.omniorder.com`
+* **TTL:** `3600`
+
+### Step 4: Verification & Go-Live
+
+1. Once DNS propagates, the Super Admin visits `order.sushizen.com`.
+2. The Edge Layer resolves the Host header.
+3. The Frontend loads, injecting the "Dark/Minimalist" theme and displaying the "Sushi Zen" logo.
