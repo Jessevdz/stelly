@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from typing import List, Literal
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from app.db.session import get_db
@@ -163,10 +163,20 @@ def delete_modifier_group(
 # --- Settings / Theme Config ---
 
 
+class OperatingHour(BaseModel):
+    label: str
+    time: str
+
+
 class ThemeConfigSchema(BaseModel):
     preset: Literal["mono-luxe", "fresh-market", "tech-ocean"]
     primary_color: str
     font_family: str
+    # New Flexible Fields
+    address: Optional[str] = "123 Culinary Avenue"
+    phone: Optional[str] = "(555) 123-4567"
+    email: Optional[str] = "hello@example.com"
+    operating_hours: List[OperatingHour] = []
 
 
 @router.get("/settings", response_model=ThemeConfigSchema)
@@ -178,10 +188,9 @@ def get_tenant_settings(
     """
     Fetch settings from the Public Tenant table based on the current host.
     """
-    # 1. Resolve Tenant from Host (Same logic as deps, but we need the object)
     host = request.headers.get("host", "").split(":")[0]
 
-    # We must switch to public schema to read the Tenant table
+    # Switch to public schema to read the Tenant table
     db.execute(text("SET search_path TO public"))
     tenant = db.query(Tenant).filter(Tenant.domain == host).first()
 
@@ -190,13 +199,23 @@ def get_tenant_settings(
 
     config = tenant.theme_config or {}
 
-    # Switch back to tenant schema for safety (though request ends here)
+    # Switch back to tenant schema for safety
     db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
+
+    # Default hours if none exist
+    default_hours = [
+        {"label": "Mon - Fri", "time": "11:00 AM - 10:00 PM"},
+        {"label": "Sat - Sun", "time": "10:00 AM - 11:00 PM"},
+    ]
 
     return ThemeConfigSchema(
         preset=config.get("preset", "mono-luxe"),
         primary_color=config.get("primary_color", "#000000"),
         font_family=config.get("font_family", "Inter"),
+        address=config.get("address", "123 Culinary Avenue"),
+        phone=config.get("phone", "(555) 123-4567"),
+        email=config.get("email", "hello@example.com"),
+        operating_hours=config.get("operating_hours", default_hours),
     )
 
 
@@ -220,14 +239,19 @@ def update_tenant_settings(
         raise HTTPException(status_code=404, detail="Tenant not found")
 
     # 2. Update Field
-    # We use a shallow merge or replacement
+    # Convert Pydantic list of models to list of dicts for JSON storage
+    hours_data = [h.model_dump() for h in payload.operating_hours]
+
     new_config = {
         "preset": payload.preset,
         "primary_color": payload.primary_color,
         "font_family": payload.font_family,
+        "address": payload.address,
+        "phone": payload.phone,
+        "email": payload.email,
+        "operating_hours": hours_data,
     }
 
-    # SQLAlchemy JSON field update
     tenant.theme_config = new_config
 
     db.commit()

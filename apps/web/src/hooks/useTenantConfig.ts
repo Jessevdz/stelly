@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
 
+export interface OperatingHour {
+    label: string;
+    time: string;
+}
+
 export interface TenantConfig {
     name: string;
     primary_color: string;
     font_family: string;
     currency: string;
     preset: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    operating_hours?: OperatingHour[];
 }
 
 export function useTenantConfig() {

@@ -19,15 +19,28 @@ from datetime import datetime
 from uuid import UUID
 
 router = APIRouter()
+# --- Config Schemas ---
 
 
-# --- Schemas ---
+class OperatingHour(BaseModel):
+    label: str
+    time: str
+
+
 class TenantConfigResponse(BaseModel):
     name: str
     primary_color: str
     font_family: str = "Inter"
     currency: str = "$"
     preset: str = "mono-luxe"
+    # Contact Info
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    operating_hours: List[OperatingHour] = []
+
+
+# --- Order Schemas ---
 
 
 # Input Schema for Modifiers
@@ -43,7 +56,7 @@ class OrderItemSchema(BaseModel):
 
 class OrderCreateRequest(BaseModel):
     customer_name: str
-    table_number: Optional[str] = None  # New Input
+    table_number: Optional[str] = None
     items: List[OrderItemSchema]
 
 
@@ -89,11 +102,21 @@ def get_tenant_by_host(request: Request, db: Session) -> Tenant:
 def get_store_config(request: Request, db: Session = Depends(get_db)):
     tenant = get_tenant_by_host(request, db)
     theme = tenant.theme_config or {}
+
+    default_hours = [
+        {"label": "Mon - Fri", "time": "11:00 AM - 10:00 PM"},
+        {"label": "Sat - Sun", "time": "10:00 AM - 11:00 PM"},
+    ]
+
     return TenantConfigResponse(
         name=tenant.name,
         primary_color=theme.get("primary_color", "#000000"),
         font_family=theme.get("font_family", "Inter"),
         preset=theme.get("preset", "mono-luxe"),
+        address=theme.get("address", "123 Culinary Avenue"),
+        phone=theme.get("phone", "(555) 123-4567"),
+        email=theme.get("email", "hello@example.com"),
+        operating_hours=theme.get("operating_hours", default_hours),
     )
 
 

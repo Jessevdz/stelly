@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Check, Palette, Save, Type } from 'lucide-react';
+import { Check, Palette, Save, Type, MapPin, Trash2, Plus } from 'lucide-react';
 import { THEME_PRESETS } from '../../utils/theme';
+
+interface OperatingHour {
+    label: string;
+    time: string;
+}
 
 interface ThemeConfig {
     preset: string;
     primary_color: string;
     font_family: string;
+    address: string;
+    phone: string;
+    email: string;
+    operating_hours: OperatingHour[];
 }
 
 const PRESETS = [
@@ -38,7 +47,13 @@ export function TenantSettings() {
     const [config, setConfig] = useState<ThemeConfig>({
         preset: 'mono-luxe',
         primary_color: '#000000',
-        font_family: 'Inter'
+        font_family: 'Inter',
+        address: '',
+        phone: '',
+        email: '',
+        operating_hours: [
+            { label: 'Mon - Fri', time: '11:00 AM - 10:00 PM' }
+        ]
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -52,11 +67,14 @@ export function TenantSettings() {
         })
             .then(res => res.json())
             .then(data => {
-                // Ensure we have a valid preset default if the DB returns null/empty
                 setConfig({
                     preset: data.preset || 'mono-luxe',
                     primary_color: data.primary_color || '#000000',
-                    font_family: data.font_family || 'Inter'
+                    font_family: data.font_family || 'Inter',
+                    address: data.address || '',
+                    phone: data.phone || '',
+                    email: data.email || '',
+                    operating_hours: data.operating_hours || []
                 });
                 setLoading(false);
             })
@@ -84,10 +102,8 @@ export function TenantSettings() {
         }
     };
 
-    // When a preset is clicked, auto-fill the defaults from that preset
     const selectPreset = (id: string) => {
         const styles = THEME_PRESETS[id] as React.CSSProperties;
-        // Extract the default primary color from the preset definition for the input
         const defaultPrimary = styles['--color-primary' as keyof React.CSSProperties] as string;
 
         setConfig(prev => ({
@@ -97,10 +113,29 @@ export function TenantSettings() {
         }));
     };
 
+    // --- Dynamic Hours Handlers ---
+    const handleHourChange = (index: number, field: keyof OperatingHour, value: string) => {
+        const updated = [...config.operating_hours];
+        updated[index][field] = value;
+        setConfig({ ...config, operating_hours: updated });
+    };
+
+    const addHourRow = () => {
+        setConfig({
+            ...config,
+            operating_hours: [...config.operating_hours, { label: '', time: '' }]
+        });
+    };
+
+    const removeHourRow = (index: number) => {
+        const updated = config.operating_hours.filter((_, i) => i !== index);
+        setConfig({ ...config, operating_hours: updated });
+    };
+
     if (loading) return <div>Loading Settings...</div>;
 
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto pb-20">
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Storefront Appearance</h1>
@@ -135,7 +170,6 @@ export function TenantSettings() {
                                 }
                             `}
                         >
-                            {/* Preview Window */}
                             <div className="h-32 flex items-center justify-center relative" style={{ backgroundColor: p.previewBg }}>
                                 <div className="bg-white p-3 rounded shadow-sm w-3/4 space-y-2">
                                     <div className="h-2 w-1/2 rounded-full" style={{ backgroundColor: p.previewFg }}></div>
@@ -147,7 +181,6 @@ export function TenantSettings() {
                                     </div>
                                 )}
                             </div>
-                            {/* Meta */}
                             <div className="p-4 bg-white">
                                 <h3 className="font-bold text-gray-900">{p.name}</h3>
                                 <p className="text-xs text-gray-500 mt-1">{p.desc}</p>
@@ -203,6 +236,87 @@ export function TenantSettings() {
                     </div>
                 </section>
             </div>
+
+            {/* 4. Store Information */}
+            <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mt-8">
+                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <MapPin size={20} className="text-gray-500" /> Store Information
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Address</label>
+                        <input
+                            type="text"
+                            value={config.address}
+                            onChange={(e) => setConfig({ ...config, address: e.target.value })}
+                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="e.g. 123 Culinary Ave, New York, NY"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <input
+                            type="text"
+                            value={config.phone}
+                            onChange={(e) => setConfig({ ...config, phone: e.target.value })}
+                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="(555) 123-4567"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+                        <input
+                            type="email"
+                            value={config.email}
+                            onChange={(e) => setConfig({ ...config, email: e.target.value })}
+                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="hello@restaurant.com"
+                        />
+                    </div>
+                </div>
+
+                {/* --- Dynamic Hours Section --- */}
+                <div className="border-t border-gray-100 pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">Operating Hours</label>
+
+                    <div className="space-y-3">
+                        {config.operating_hours.map((hour, index) => (
+                            <div key={index} className="flex gap-3 items-center">
+                                <input
+                                    type="text"
+                                    value={hour.label}
+                                    onChange={(e) => handleHourChange(index, 'label', e.target.value)}
+                                    className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                    placeholder="e.g. Weekdays"
+                                />
+                                <input
+                                    type="text"
+                                    value={hour.time}
+                                    onChange={(e) => handleHourChange(index, 'time', e.target.value)}
+                                    className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                    placeholder="e.g. 9:00 AM - 5:00 PM"
+                                />
+                                <button
+                                    onClick={() => removeHourRow(index)}
+                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={addHourRow}
+                        className="mt-3 flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700"
+                    >
+                        <Plus size={16} /> Add Hours Row
+                    </button>
+                </div>
+            </section>
         </div>
     );
 }
