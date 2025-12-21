@@ -13,9 +13,9 @@ from app.db.models import (
 from app.schemas.menu import CategoryWithItems
 from app.core.socket import manager
 from pydantic import BaseModel
-from typing import List, Literal
+from typing import List, Literal, Optional
 from datetime import datetime
-from uuid import UUID  # <--- Added Import
+from uuid import UUID
 
 router = APIRouter()
 
@@ -29,31 +29,38 @@ class TenantConfigResponse(BaseModel):
     preset: str = "mono-luxe"
 
 
+# Input Schema for Modifiers
+class OrderModifierSchema(BaseModel):
+    optionId: UUID
+
+
 class OrderItemSchema(BaseModel):
-    id: str
+    id: UUID
     qty: int
-    name: str
+    modifiers: List[OrderModifierSchema] = []
 
 
 class OrderCreateRequest(BaseModel):
     customer_name: str
     items: List[OrderItemSchema]
-    total_amount: int
+    # We purposefully exclude total_amount from the input requirement.
+    # If the client sends it, Pydantic will ignore it or we just won't use it.
 
 
 class OrderResponse(BaseModel):
     id: str
     status: str
     message: str
+    total_amount: int  # Return the authoritative total
 
 
 # New Schema for KDS List
 class OrderDetail(BaseModel):
-    id: UUID  # <--- Changed from str to UUID to handle ORM objects
+    id: UUID
     customer_name: str
     status: str
     total_amount: int
-    items: List[OrderItemSchema]
+    items: List[dict]  # Returns the JSON snapshot
     created_at: datetime
 
     class Config:
@@ -160,6 +167,7 @@ async def update_order_status(
         id=str(order.id),
         status=order.status,
         message=f"Order marked as {payload.status}",
+        total_amount=order.total_amount,
     )
 
 
@@ -167,36 +175,100 @@ async def update_order_status(
 async def create_store_order(
     payload: OrderCreateRequest, request: Request, db: Session = Depends(get_db)
 ):
+    """
+    Creates an order with SERVER-SIDE price calculation.
+    """
     tenant = get_tenant_by_host(request, db)
     db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
 
+    # 1. Fetch all referenced Menu Items and Modifiers in bulk
+    item_ids = [item.id for item in payload.items]
+    modifier_ids = [mod.optionId for item in payload.items for mod in item.modifiers]
+
+    # Fetch Items
+    db_items = db.query(MenuItem).filter(MenuItem.id.in_(item_ids)).all()
+    items_map = {item.id: item for item in db_items}
+
+    # Fetch Modifiers
+    db_modifiers = (
+        db.query(ModifierOption).filter(ModifierOption.id.in_(modifier_ids)).all()
+    )
+    mods_map = {mod.id: mod for mod in db_modifiers}
+
+    # 2. Calculate Totals & Build Data Snapshot
+    grand_total = 0
+    items_snapshot = []
+
+    for item_in in payload.items:
+        db_item = items_map.get(item_in.id)
+        if not db_item:
+            # Skip invalid items or raise 400. Skipping for resilience.
+            continue
+
+        # Start with base price
+        item_total_cents = db_item.price
+
+        # Calculate Modifiers
+        modifiers_snapshot = []
+        for mod_in in item_in.modifiers:
+            db_mod = mods_map.get(mod_in.optionId)
+            if db_mod:
+                item_total_cents += db_mod.price_adjustment
+                modifiers_snapshot.append(
+                    {
+                        "id": str(db_mod.id),
+                        "name": db_mod.name,
+                        "price": db_mod.price_adjustment,
+                    }
+                )
+
+        # Multiply by Quantity
+        line_total = item_total_cents * item_in.qty
+        grand_total += line_total
+
+        # Create Snapshot Item (What we save to DB JSON)
+        items_snapshot.append(
+            {
+                "id": str(db_item.id),
+                "name": db_item.name,
+                "qty": item_in.qty,
+                "price_snapshot": db_item.price,
+                "modifiers": modifiers_snapshot,
+                "line_total": line_total,
+            }
+        )
+
+    if grand_total == 0 and not items_snapshot:
+        raise HTTPException(status_code=400, detail="Order cannot be empty")
+
+    # 3. Create Order Record
     new_order = Order(
         customer_name=payload.customer_name,
-        total_amount=payload.total_amount,
-        items=[item.model_dump() for item in payload.items],
+        total_amount=grand_total,
+        items=items_snapshot,  # Stores the JSON structure
         status="PENDING",
-        # created_at handled by DB default
     )
 
     db.add(new_order)
 
     try:
-        db.flush()
-        # Capture for broadcast
+        db.commit()
+        db.refresh(new_order)
+
+        # Prepare broadcast data
         order_data = {
             "id": str(new_order.id),
             "customer_name": new_order.customer_name,
             "total_amount": new_order.total_amount,
             "items": new_order.items,
             "status": new_order.status,
-            "created_at": str(datetime.utcnow()),
+            "created_at": str(new_order.created_at),
         }
-        db.commit()
-    except Exception:
+    except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to place order")
+        raise HTTPException(status_code=500, detail=f"Failed to place order: {e}")
 
-    # Broadcast new order
+    # 4. Broadcast new order
     await manager.broadcast_to_tenant(
         tenant.schema_name,
         {
@@ -206,7 +278,8 @@ async def create_store_order(
     )
 
     return OrderResponse(
-        id=order_data["id"],
-        status=order_data["status"],
+        id=str(new_order.id),
+        status=new_order.status,
         message="Order placed successfully",
+        total_amount=new_order.total_amount,
     )

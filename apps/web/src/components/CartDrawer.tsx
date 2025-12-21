@@ -11,10 +11,15 @@ export function CartDrawer() {
     const handleCheckout = async () => {
         if (items.length === 0) return;
 
+        // Construct payload for Server-Side Calculation
         const payload = {
             customer_name: "Online Guest",
-            total_amount: cartTotal,
-            items: items.map(i => ({ id: i.id, qty: i.qty, name: i.name }))
+            items: items.map(i => ({
+                id: i.id,
+                qty: i.qty,
+                // Map internal cart structure to API schema
+                modifiers: i.modifiers.map(m => ({ optionId: m.optionId }))
+            }))
         };
 
         try {
@@ -25,11 +30,13 @@ export function CartDrawer() {
             });
 
             if (res.ok) {
-                alert("Order Placed Successfully!");
+                const data = await res.json();
+                alert(`Order Placed! Total: $${(data.total_amount / 100).toFixed(2)}`);
                 clearCart();
                 toggleDrawer(false);
             } else {
-                alert("Failed to place order.");
+                const err = await res.json();
+                alert(`Failed: ${err.detail || "Unknown error"}`);
             }
         } catch (e) {
             console.error(e);
@@ -72,7 +79,7 @@ export function CartDrawer() {
                         </div>
                     ) : (
                         items.map(item => (
-                            <div key={item.id} className="flex gap-3 border-b pb-4">
+                            <div key={item.cartId} className="flex gap-3 border-b pb-4">
                                 {item.image_url && (
                                     <div
                                         className="h-16 w-16 bg-cover bg-center rounded-md bg-gray-100"
@@ -82,11 +89,23 @@ export function CartDrawer() {
                                 <div className="flex-1">
                                     <h4 className="font-semibold text-gray-800">{item.name}</h4>
                                     <p className="text-sm text-gray-500">Qty: {item.qty}</p>
+
+                                    {/* Display modifiers in cart for user confirmation */}
+                                    {item.modifiers.length > 0 && (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                            {item.modifiers.map(m => (
+                                                <div key={m.optionId}>+ {m.optionName}</div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex flex-col items-end justify-between">
-                                    <span className="font-bold">${((item.price * item.qty) / 100).toFixed(2)}</span>
+                                    {/* Calculate visual total for display (base + modifiers) */}
+                                    <span className="font-bold">
+                                        ${(((item.price + item.modifiers.reduce((a, b) => a + b.price, 0)) * item.qty) / 100).toFixed(2)}
+                                    </span>
                                     <button
-                                        onClick={() => removeFromCart(item.id)}
+                                        onClick={() => removeFromCart(item.cartId)}
                                         className="text-red-500 hover:bg-red-50 p-1 rounded"
                                     >
                                         <Trash2 size={16} />
@@ -100,7 +119,7 @@ export function CartDrawer() {
                 {items.length > 0 && (
                     <div className="p-6 bg-gray-50 border-t">
                         <div className="flex justify-between text-lg font-bold mb-4">
-                            <span>Total</span>
+                            <span>Estimated Total</span>
                             <span>${(cartTotal / 100).toFixed(2)}</span>
                         </div>
                         <BrandButton
