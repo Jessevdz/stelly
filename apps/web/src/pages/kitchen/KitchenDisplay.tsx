@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTenantConfig } from '../../hooks/useTenantConfig';
-import { Clock, Wifi, WifiOff, CheckCircle, ChefHat, Bell } from 'lucide-react';
+import { Wifi, WifiOff, ChefHat, Bell } from 'lucide-react';
+import { KitchenTicket } from '../../components/kds/KitchenTicket';
 
 // --- Types ---
 interface OrderItem {
@@ -18,14 +19,14 @@ interface Order {
     created_at: string;
 }
 
-// Simple Base64 "Ding" Sound for immediate testing
+// Simple Base64 "Ding" Sound
 const ALERT_SOUND = "data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 
 export function KitchenDisplay() {
     const { config } = useTenantConfig();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isConnected, setIsConnected] = useState(false);
-    const [isActive, setIsActive] = useState(false); // For user interaction (Audio/WakeLock)
+    const [isActive, setIsActive] = useState(false);
 
     // Refs
     const ws = useRef<WebSocket | null>(null);
@@ -38,16 +39,14 @@ export function KitchenDisplay() {
 
     const enableSystem = async () => {
         setIsActive(true);
-
-        // 1. Play silent sound to unlock AudioContext on iOS/Chrome
+        // 1. Unlock AudioContext
         audioRef.current?.play().catch(() => { });
-
-        // 2. Request Wake Lock (Keep screen on)
+        // 2. Request Wake Lock
         if ('wakeLock' in navigator) {
             try {
-                // @ts-ignore - TS might not know wakeLock depending on version
+                // @ts-ignore 
                 await navigator.wakeLock.request('screen');
-                console.log("Screen Wake Lock active");
+                console.log("Wake Lock Active");
             } catch (err) {
                 console.error("Wake Lock failed:", err);
             }
@@ -64,16 +63,11 @@ export function KitchenDisplay() {
         let reconnectTimeout: ReturnType<typeof setTimeout>;
 
         const connect = () => {
-            // If we are unmounted, stop trying to connect
             if (!isMounted) return;
-
             ws.current = new WebSocket(wsUrl);
 
             ws.current.onopen = () => {
-                if (isMounted) {
-                    setIsConnected(true);
-                    console.log("KDS Connected");
-                }
+                if (isMounted) setIsConnected(true);
             };
 
             ws.current.onmessage = (event) => {
@@ -88,7 +82,6 @@ export function KitchenDisplay() {
             ws.current.onclose = () => {
                 if (isMounted) {
                     setIsConnected(false);
-                    // Only reconnect if the component is still mounted
                     reconnectTimeout = setTimeout(connect, 3000);
                 }
             };
@@ -98,7 +91,7 @@ export function KitchenDisplay() {
 
         return () => {
             isMounted = false;
-            clearTimeout(reconnectTimeout); // Cancel pending reconnects
+            clearTimeout(reconnectTimeout);
             ws.current?.close();
         };
     }, [config]);
@@ -109,168 +102,93 @@ export function KitchenDisplay() {
             if (prev.some(o => o.id === order.id)) return prev;
             return [...prev, order];
         });
-
-        // Play Sound (Debounced slightly if needed, but safe here)
-        audioRef.current?.play().catch(e => console.error("Audio play failed", e));
+        audioRef.current?.play().catch(e => console.error("Audio failed", e));
     };
 
-    const updateStatus = (orderId: string, newStatus: Order['status']) => {
-        // Optimistic UI Update
+    const handleBump = (orderId: string) => {
+        // Optimistic: Mark as READY immediately
+        // In KDS view, READY means "Done and off the screen"
         setOrders(prev => prev.map(o =>
-            o.id === orderId ? { ...o, status: newStatus } : o
+            o.id === orderId ? { ...o, status: 'READY' } : o
         ));
 
-        // TODO: In a real app, call API: PUT /api/v1/store/orders/{id}/status
+        // In a real app, send API request here
+        // fetch(`/api/v1/orders/${orderId}/status`, { method: 'PUT', body: ... })
     };
 
-    // --- 4. Render Helpers ---
-    const getOrdersByStatus = (status: string) => orders.filter(o => o.status === status);
+    const activeOrders = orders.filter(o => o.status !== 'READY');
 
-    const formatTime = (isoString: string) => {
-        const date = new Date(isoString);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    };
+    // --- 4. Render ---
+    if (!config) return <div className="bg-neutral-950 h-screen text-white flex items-center justify-center">Loading KDS...</div>;
 
-    // --- 5. Render ---
-    if (!config) return <div className="bg-gray-900 h-screen text-white flex items-center justify-center">Loading KDS...</div>;
-
-    // Overlay to force user interaction (required for Audio/WakeLock)
     if (!isActive) {
         return (
-            <div className="bg-gray-900 h-screen text-white flex flex-col items-center justify-center gap-6">
-                <ChefHat size={64} className="text-primary" />
-                <h1 className="text-3xl font-bold">Kitchen Display System</h1>
-                <p className="text-gray-400">Tap to enable audio alerts and always-on screen</p>
+            <div className="bg-neutral-950 h-screen text-white flex flex-col items-center justify-center gap-8">
+                <ChefHat size={80} className="text-primary" />
+                <div className="text-center">
+                    <h1 className="text-4xl font-bold mb-2">Kitchen Display System</h1>
+                    <p className="text-gray-400 text-lg">Station: {config.name}</p>
+                </div>
                 <button
                     onClick={enableSystem}
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-12 rounded-full text-xl transition-all"
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-12 rounded-full text-2xl transition-all shadow-[0_0_20px_rgba(22,163,74,0.5)]"
                 >
-                    Start Kitchen Shift
+                    START SHIFT
                 </button>
+                <p className="text-gray-500 text-sm mt-4">Enables Audio Alerts & Always-On Screen</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100 font-mono flex flex-col">
-            {/* Header */}
-            <header className="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md z-10">
+        <div className="min-h-screen bg-[#121212] text-gray-100 font-sans flex flex-col">
+            {/* Top Bar */}
+            <header className="bg-neutral-900 border-b border-gray-800 p-4 flex justify-between items-center h-16 shadow-md z-10 sticky top-0">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-2xl font-bold text-white tracking-wider">
-                        {config.name} <span className="text-primary text-sm bg-gray-700 px-2 py-1 rounded ml-2">KDS</span>
+                    <h1 className="text-xl font-bold tracking-wider text-gray-200">
+                        OMNI<span className="text-primary">KDS</span>
                     </h1>
+                    <span className="bg-gray-800 text-gray-400 px-3 py-1 rounded text-sm font-mono border border-gray-700">
+                        {config.name}
+                    </span>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-sm">
-                        {isConnected ? (
-                            <span className="flex items-center gap-2 text-green-400"><Wifi size={18} /> Online</span>
-                        ) : (
-                            <span className="flex items-center gap-2 text-red-400 animate-pulse"><WifiOff size={18} /> Disconnected</span>
-                        )}
+
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                        <span className="text-gray-400 text-sm uppercase tracking-widest font-bold">Ticket Count:</span>
+                        <span className="text-2xl font-black text-white">{activeOrders.length}</span>
                     </div>
-                    <div className="text-xl font-bold font-sans">
-                        {new Date().toLocaleTimeString()}
+                    <div className="h-6 w-px bg-gray-700"></div>
+                    <div className="flex items-center gap-2">
+                        {isConnected ? (
+                            <Wifi size={20} className="text-green-500" />
+                        ) : (
+                            <WifiOff size={20} className="text-red-500 animate-pulse" />
+                        )}
                     </div>
                 </div>
             </header>
 
-            {/* Kanban Board */}
-            <main className="flex-1 p-4 overflow-hidden flex gap-4">
-
-                {/* Column: Pending */}
-                <div className="flex-1 flex flex-col bg-gray-800/50 rounded-xl border border-gray-700">
-                    <div className="p-4 border-b border-gray-700 bg-red-900/20 rounded-t-xl flex justify-between items-center">
-                        <h2 className="text-xl font-bold text-red-400 uppercase tracking-widest">Pending</h2>
-                        <span className="bg-gray-700 px-3 py-1 rounded-full text-sm font-bold">{getOrdersByStatus('PENDING').length}</span>
+            {/* Grid Canvas */}
+            <main className="flex-1 p-4 overflow-y-auto">
+                {activeOrders.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center opacity-20">
+                        <Bell size={120} />
+                        <h2 className="text-4xl font-bold mt-8">All Caught Up</h2>
+                        <p className="text-xl mt-2">Waiting for new orders...</p>
                     </div>
-                    <div className="flex-1 p-2 overflow-y-auto space-y-3">
-                        {getOrdersByStatus('PENDING').map(order => (
-                            <OrderCard
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 auto-rows-max">
+                        {activeOrders.map(order => (
+                            <KitchenTicket
                                 key={order.id}
                                 order={order}
-                                onAction={() => updateStatus(order.id, 'PREPARING')}
-                                actionLabel="Start Prep"
-                                actionColor="bg-blue-600 hover:bg-blue-500"
-                                time={formatTime(order.created_at)}
+                                onBump={() => handleBump(order.id)}
                             />
                         ))}
                     </div>
-                </div>
-
-                {/* Column: Preparing */}
-                <div className="flex-1 flex flex-col bg-gray-800/50 rounded-xl border border-gray-700">
-                    <div className="p-4 border-b border-gray-700 bg-blue-900/20 rounded-t-xl flex justify-between items-center">
-                        <h2 className="text-xl font-bold text-blue-400 uppercase tracking-widest">Preparing</h2>
-                        <span className="bg-gray-700 px-3 py-1 rounded-full text-sm font-bold">{getOrdersByStatus('PREPARING').length}</span>
-                    </div>
-                    <div className="flex-1 p-2 overflow-y-auto space-y-3">
-                        {getOrdersByStatus('PREPARING').map(order => (
-                            <OrderCard
-                                key={order.id}
-                                order={order}
-                                onAction={() => updateStatus(order.id, 'READY')}
-                                actionLabel="Mark Ready"
-                                actionColor="bg-green-600 hover:bg-green-500"
-                                time={formatTime(order.created_at)}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Column: Ready */}
-                <div className="flex-1 flex flex-col bg-gray-800/50 rounded-xl border border-gray-700">
-                    <div className="p-4 border-b border-gray-700 bg-green-900/20 rounded-t-xl flex justify-between items-center">
-                        <h2 className="text-xl font-bold text-green-400 uppercase tracking-widest">Ready</h2>
-                        <span className="bg-gray-700 px-3 py-1 rounded-full text-sm font-bold">{getOrdersByStatus('READY').length}</span>
-                    </div>
-                    <div className="flex-1 p-2 overflow-y-auto space-y-3 opacity-60">
-                        {getOrdersByStatus('READY').map(order => (
-                            <div key={order.id} className="bg-gray-700 p-4 rounded-lg border border-gray-600">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-lg font-bold text-white">#{order.id.slice(0, 4)}</span>
-                                    <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle size={16} /> Done</span>
-                                </div>
-                                <div className="text-sm text-gray-300">{order.customer_name}</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
+                )}
             </main>
-        </div>
-    );
-}
-
-// --- Subcomponent: Order Card ---
-function OrderCard({ order, onAction, actionLabel, actionColor, time }: any) {
-    return (
-        <div className="bg-gray-700 rounded-lg p-4 border-l-4 border-l-primary shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="flex justify-between items-start mb-3 border-b border-gray-600 pb-2">
-                <div>
-                    <h3 className="text-2xl font-bold text-white">#{order.id.slice(0, 4)}</h3>
-                    <p className="text-gray-300 font-medium truncate w-32">{order.customer_name}</p>
-                </div>
-                <div className="flex items-center text-gray-400 text-sm gap-1">
-                    <Clock size={14} />
-                    <span>{time}</span>
-                </div>
-            </div>
-
-            <div className="space-y-2 mb-4">
-                {order.items.map((item: any, idx: number) => (
-                    <div key={idx} className="flex justify-between items-center text-lg">
-                        <span className="text-gray-200 font-medium">{item.name}</span>
-                        <span className="bg-gray-600 px-2 rounded text-white font-bold">x{item.qty}</span>
-                    </div>
-                ))}
-            </div>
-
-            <button
-                onClick={onAction}
-                className={`w-full py-3 rounded-lg text-white font-bold uppercase tracking-wide shadow-md transition-colors ${actionColor}`}
-            >
-                {actionLabel}
-            </button>
         </div>
     );
 }
