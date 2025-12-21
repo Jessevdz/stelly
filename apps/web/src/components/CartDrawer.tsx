@@ -13,7 +13,7 @@ export function CartDrawer() {
         const payload = {
             customer_name: "Online Guest",
             total_amount: cartTotal,
-            items: items.map(i => ({ id: i.id, qty: i.qty }))
+            items: items.map(i => ({ id: i.id, qty: i.qty, name: i.name }))
         };
 
         try {

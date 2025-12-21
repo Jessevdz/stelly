@@ -23,6 +23,7 @@ class TenantConfigResponse(BaseModel):
 class OrderItemSchema(BaseModel):
     id: str
     qty: int
+    name: str
 
 
 class OrderCreateRequest(BaseModel):
