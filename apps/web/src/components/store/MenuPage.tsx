@@ -35,8 +35,8 @@ export function MenuPage() {
     const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Derive Theme Preset (fallback to 'mono-luxe')
-    const presetName = config.theme_config?.preset || 'mono-luxe';
+    // Read directly from the flattened config object provided by the API
+    const presetName = config.preset || 'mono-luxe';
 
     // Refs
     const observerRef = useRef<IntersectionObserver | null>(null);

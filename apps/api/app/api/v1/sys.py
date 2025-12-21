@@ -27,6 +27,7 @@ def provision_tenant(payload: TenantCreateRequest, db: Session = Depends(get_db)
         domain=payload.domain,
         schema_name=schema_name,
         theme_config={
+            "preset": "mono-luxe",
             "primary_color": payload.primary_color,
             "font_family": payload.font_family,
         },

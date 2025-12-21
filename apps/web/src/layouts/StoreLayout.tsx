@@ -25,13 +25,7 @@ export const StoreLayout = () => {
         </div>
     );
 
-    // Pass the preset ID explicitly
-    // In MVP DB, 'preset' might be missing, so we fallback safely
-    // Assuming config.theme_config might look like { preset: 'fresh-market', ... }
-    const themePreset = (config as any).preset || 'mono-luxe';
-
-    // Theme Injection Logic
-    const themeStyles = applyTheme(themePreset, {
+    const themeStyles = applyTheme(config.preset, {
         primary_color: config.primary_color,
         font_family: config.font_family,
     });
@@ -40,10 +34,7 @@ export const StoreLayout = () => {
         <div style={themeStyles} className="min-h-screen bg-app text-text-main font-body">
             <FontLoader fontFamily={config.font_family} />
 
-            {/* Main Content Area */}
             <main className="pb-24 md:pb-12">
-                {/* We pass the config name to the context of the outlet if needed, 
-                    but simpler to just rely on the layout wrapping the pages */}
                 <Outlet context={{ config }} />
             </main>
 

@@ -45,12 +45,19 @@ export function TenantSettings() {
 
     // Fetch existing settings
     useEffect(() => {
+        if (!token) return;
+
         fetch('/api/v1/admin/settings', {
             headers: { 'Authorization': `Bearer ${token}` }
         })
             .then(res => res.json())
             .then(data => {
-                setConfig(data);
+                // Ensure we have a valid preset default if the DB returns null/empty
+                setConfig({
+                    preset: data.preset || 'mono-luxe',
+                    primary_color: data.primary_color || '#000000',
+                    font_family: data.font_family || 'Inter'
+                });
                 setLoading(false);
             })
             .catch(err => console.error(err));

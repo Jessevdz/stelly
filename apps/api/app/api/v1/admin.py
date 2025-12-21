@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Literal
 from uuid import UUID
 
 from app.db.session import get_db
@@ -101,7 +101,7 @@ def update_item(
 
 
 class ThemeConfigSchema(BaseModel):
-    preset: str
+    preset: Literal["mono-luxe", "fresh-market", "tech-ocean"]
     primary_color: str
     font_family: str
 

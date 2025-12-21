@@ -5,6 +5,7 @@ export interface TenantConfig {
     primary_color: string;
     font_family: string;
     currency: string;
+    preset: string;
 }
 
 export function useTenantConfig() {

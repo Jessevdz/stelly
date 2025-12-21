@@ -18,6 +18,7 @@ class TenantConfigResponse(BaseModel):
     primary_color: str
     font_family: str = "Inter"
     currency: str = "$"
+    preset: str = "mono-luxe"
 
 
 class OrderItemSchema(BaseModel):
@@ -58,6 +59,7 @@ def get_store_config(request: Request, db: Session = Depends(get_db)):
         name=tenant.name,
         primary_color=theme.get("primary_color", "#000000"),
         font_family=theme.get("font_family", "Inter"),
+        preset=theme.get("preset", "mono-luxe"),
     )
 
 
