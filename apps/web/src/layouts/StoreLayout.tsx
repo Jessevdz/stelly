@@ -4,6 +4,7 @@ import { useTenantConfig } from '../hooks/useTenantConfig';
 import { FontLoader } from '../components/FontLoader';
 import { CartDrawer } from '../components/CartDrawer';
 import { CartFloatingButton } from '../components/store/CartFloatingButton';
+import { OrderStatusBanner } from '../components/store/OrderStatusBanner'; // <--- Import
 import { applyTheme } from '../utils/theme';
 
 export const StoreLayout = () => {
@@ -34,7 +35,9 @@ export const StoreLayout = () => {
         <div style={themeStyles} className="min-h-screen bg-app text-text-main font-body">
             <FontLoader fontFamily={config.font_family} />
 
-            <main className="pb-24 md:pb-12">
+            <OrderStatusBanner />
+
+            <main className="pb-24 md:pb-12 pt-12"> {/* Added pt-12 to account for potential banner space */}
                 <Outlet context={{ config }} />
             </main>
 

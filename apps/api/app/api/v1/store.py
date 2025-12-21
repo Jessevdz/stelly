@@ -12,6 +12,7 @@ from app.db.models import (
 )
 from app.schemas.menu import CategoryWithItems
 from app.core.socket import manager
+from app.core.ratelimit import RateLimiter
 from pydantic import BaseModel
 from typing import List, Literal, Optional
 from datetime import datetime
@@ -173,7 +174,12 @@ async def update_order_status(
     )
 
 
-@router.post("/orders", response_model=OrderResponse, status_code=201)
+@router.post(
+    "/orders",
+    response_model=OrderResponse,
+    status_code=201,
+    dependencies=[Depends(RateLimiter(times=3, seconds=600))],
+)
 async def create_store_order(
     payload: OrderCreateRequest, request: Request, db: Session = Depends(get_db)
 ):
@@ -297,4 +303,33 @@ async def create_store_order(
         status=new_order.status,
         message="Order placed successfully",
         total_amount=new_order.total_amount,
+    )
+
+
+@router.get("/orders/{order_id}", response_model=OrderResponse)
+def get_order_status(order_id: str, request: Request, db: Session = Depends(get_db)):
+    """
+    Allow customers to poll the status of their specific order ID.
+    UUID prevents easy enumeration/snooping of other orders.
+    """
+    tenant = get_tenant_by_host(request, db)
+    db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
+
+    # Convert str to UUID for safe query
+    try:
+        oid = UUID(order_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid Order ID format")
+
+    order = db.query(Order).filter(Order.id == oid).first()
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    return OrderResponse(
+        id=str(order.id),
+        ticket_number=order.ticket_number,
+        status=order.status,
+        message="Status retrieved",
+        total_amount=order.total_amount,
     )

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     S3_BUCKET: str = "omniorder-assets"
     S3_REGION: str = "us-east-1"
 
+    # Redis
+    REDIS_HOST: str = "redis"
+    REDIS_PORT: int = 6379
+
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"

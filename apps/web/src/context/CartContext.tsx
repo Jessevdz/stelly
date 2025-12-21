@@ -29,6 +29,8 @@ interface CartContextType {
     cartCount: number;
     isDrawerOpen: boolean;
     toggleDrawer: (open?: boolean) => void;
+    activeOrderId: string | null;
+    setActiveOrderId: (id: string | null) => void;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -36,15 +38,39 @@ const CartContext = createContext<CartContextType | null>(null);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [items, setItems] = useState<CartItem[]>([]);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [activeOrderId, setActiveOrderIdState] = useState<string | null>(null);
 
+    // 1. Load Cart & Active Order from Local Storage on Mount
     useEffect(() => {
-        const saved = localStorage.getItem('omni_cart');
-        if (saved) setItems(JSON.parse(saved));
+        const savedCart = localStorage.getItem('omni_cart');
+        if (savedCart) {
+            try {
+                setItems(JSON.parse(savedCart));
+            } catch (e) {
+                console.error("Failed to parse cart", e);
+            }
+        }
+
+        const savedOrder = localStorage.getItem('omni_active_order');
+        if (savedOrder) {
+            setActiveOrderIdState(savedOrder);
+        }
     }, []);
 
+    // 2. Persist Cart Changes
     useEffect(() => {
         localStorage.setItem('omni_cart', JSON.stringify(items));
     }, [items]);
+
+    // 3. Wrapper to Persist Active Order Changes
+    const setActiveOrderId = (id: string | null) => {
+        setActiveOrderIdState(id);
+        if (id) {
+            localStorage.setItem('omni_active_order', id);
+        } else {
+            localStorage.removeItem('omni_active_order');
+        }
+    };
 
     const addToCart = (newItem: Omit<CartItem, 'qty' | 'cartId'>) => {
         setItems(prev => {
@@ -85,8 +111,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return (
         <CartContext.Provider value={{
-            items, addToCart, removeFromCart, clearCart,
-            cartTotal, cartCount, isDrawerOpen, toggleDrawer
+            items,
+            addToCart,
+            removeFromCart,
+            clearCart,
+            cartTotal,
+            cartCount,
+            isDrawerOpen,
+            toggleDrawer,
+            activeOrderId,
+            setActiveOrderId
         }}>
             {children}
         </CartContext.Provider>

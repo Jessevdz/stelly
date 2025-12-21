@@ -6,7 +6,7 @@ import { X, ShoppingBag, Trash2, User, Hash } from 'lucide-react';
 export function CartDrawer() {
     const {
         items, isDrawerOpen, toggleDrawer, removeFromCart,
-        cartTotal, clearCart
+        cartTotal, clearCart, setActiveOrderId
     } = useCart();
 
     // Local state for fulfillment details
@@ -42,19 +42,29 @@ export function CartDrawer() {
 
             if (res.ok) {
                 const data = await res.json();
-                // Show Ticket Number in success message
-                alert(`Order #${data.ticket_number} Placed!\nTotal: $${(data.total_amount / 100).toFixed(2)}`);
+
+                // 1. Set the Active Order globally to trigger the Status Banner
+                setActiveOrderId(data.id);
+
+                // 2. Reset Local State
                 clearCart();
                 setCustomerName('');
                 setTableNumber('');
+
+                // 3. Close the drawer (User will see the status banner now)
                 toggleDrawer(false);
             } else {
                 const err = await res.json();
-                alert(`Failed: ${err.detail || "Unknown error"}`);
+                // Handle specific rate limit error
+                if (res.status === 429) {
+                    alert("Please wait a moment before placing another order.");
+                } else {
+                    alert(`Failed: ${err.detail || "Unknown error"}`);
+                }
             }
         } catch (e) {
             console.error(e);
-            alert("Network Error");
+            alert("Network Error. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
@@ -69,7 +79,7 @@ export function CartDrawer() {
                 onClick={() => toggleDrawer(false)}
             />
 
-            <div className="fixed inset-y-0 right-0 w-full md:w-96 bg-white shadow-2xl z-50 flex flex-col transform transition-transform">
+            <div className="fixed inset-y-0 right-0 w-full md:w-96 bg-white shadow-2xl z-50 flex flex-col transform transition-transform animate-in slide-in-from-right duration-300">
                 <div className="p-4 bg-primary text-primary-fg flex justify-between items-center shadow-md">
                     <div className="flex items-center gap-2">
                         <ShoppingBag size={20} />
@@ -96,18 +106,23 @@ export function CartDrawer() {
                             <div key={item.cartId} className="flex gap-3 border-b pb-4">
                                 {item.image_url && (
                                     <div
-                                        className="h-16 w-16 bg-cover bg-center rounded-md bg-gray-100"
+                                        className="h-16 w-16 bg-cover bg-center rounded-md bg-gray-100 shrink-0"
                                         style={{ backgroundImage: `url(${item.image_url})` }}
                                     />
                                 )}
                                 <div className="flex-1">
-                                    <h4 className="font-semibold text-gray-800">{item.name}</h4>
+                                    <h4 className="font-semibold text-gray-800 leading-tight">{item.name}</h4>
                                     <p className="text-sm text-gray-500">Qty: {item.qty}</p>
                                     {item.modifiers.length > 0 && (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                            {item.modifiers.map(m => (
-                                                <div key={m.optionId}>+ {m.optionName}</div>
+                                        <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                                            {item.modifiers.map((m, idx) => (
+                                                <div key={`${item.cartId}-mod-${idx}`}>+ {m.optionName}</div>
                                             ))}
+                                        </div>
+                                    )}
+                                    {item.notes && (
+                                        <div className="text-xs text-orange-600 mt-1 italic">
+                                            "{item.notes}"
                                         </div>
                                     )}
                                 </div>
@@ -117,7 +132,7 @@ export function CartDrawer() {
                                     </span>
                                     <button
                                         onClick={() => removeFromCart(item.cartId)}
-                                        className="text-red-500 hover:bg-red-50 p-1 rounded"
+                                        className="text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"
                                     >
                                         <Trash2 size={16} />
                                     </button>
@@ -130,7 +145,7 @@ export function CartDrawer() {
                 {/* Fulfillment Details Form */}
                 {items.length > 0 && (
                     <div className="p-4 bg-gray-50 border-t space-y-3">
-                        <h3 className="font-bold text-gray-700 text-sm uppercase">Guest Details</h3>
+                        <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide">Guest Details</h3>
 
                         <div className="relative">
                             <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -139,7 +154,7 @@ export function CartDrawer() {
                                 placeholder="Your Name (Required)"
                                 value={customerName}
                                 onChange={(e) => setCustomerName(e.target.value)}
-                                className="w-full pl-10 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary outline-none"
+                                className="w-full pl-10 p-2.5 border border-gray-300 rounded focus:ring-2 focus:ring-primary outline-none text-sm"
                             />
                         </div>
 
@@ -150,15 +165,15 @@ export function CartDrawer() {
                                 placeholder="Table Number (Optional)"
                                 value={tableNumber}
                                 onChange={(e) => setTableNumber(e.target.value)}
-                                className="w-full pl-10 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary outline-none"
+                                className="w-full pl-10 p-2.5 border border-gray-300 rounded focus:ring-2 focus:ring-primary outline-none text-sm"
                             />
                         </div>
                     </div>
                 )}
 
                 {items.length > 0 && (
-                    <div className="p-6 bg-white border-t">
-                        <div className="flex justify-between text-lg font-bold mb-4">
+                    <div className="p-6 bg-white border-t safe-area-pb">
+                        <div className="flex justify-between text-lg font-bold mb-4 text-gray-900">
                             <span>Total</span>
                             <span>${(cartTotal / 100).toFixed(2)}</span>
                         </div>
@@ -168,7 +183,7 @@ export function CartDrawer() {
                             onClick={handleCheckout}
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? 'Placing Order...' : 'Confirm Order'}
+                            {isSubmitting ? 'Sending Order...' : 'Confirm Order'}
                         </BrandButton>
                     </div>
                 )}
