@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTenantConfig } from '../../hooks/useTenantConfig';
-import { Wifi, WifiOff, ChefHat, Bell } from 'lucide-react';
+import { Wifi, WifiOff, ChefHat, Bell, Loader2 } from 'lucide-react';
 import { KitchenTicket } from '../../components/kds/KitchenTicket';
 
 // --- Types ---
@@ -27,6 +27,7 @@ export function KitchenDisplay() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [isConnected, setIsConnected] = useState(false);
     const [isActive, setIsActive] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     // Refs
     const ws = useRef<WebSocket | null>(null);
@@ -53,9 +54,22 @@ export function KitchenDisplay() {
         }
     };
 
-    // --- 2. WebSocket Connection ---
+    // --- 2. Initial Data Fetch (Persistence) ---
     useEffect(() => {
-        if (!config) return;
+        if (!config || !isActive) return;
+
+        fetch('/api/v1/store/orders')
+            .then(res => res.json())
+            .then(data => {
+                setOrders(data);
+                setLoading(false);
+            })
+            .catch(err => console.error("Failed to fetch KDS orders", err));
+    }, [config, isActive]);
+
+    // --- 3. WebSocket Connection & Sync ---
+    useEffect(() => {
+        if (!config || !isActive) return;
 
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
         const wsUrl = `${protocol}://${window.location.host}/api/v1/ws/kitchen`;
@@ -71,11 +85,24 @@ export function KitchenDisplay() {
             };
 
             ws.current.onmessage = (event) => {
-                if (isMounted) {
-                    const data = JSON.parse(event.data);
-                    if (data.event === 'new_order') {
-                        handleNewOrder(data.order);
-                    }
+                if (!isMounted) return;
+                const data = JSON.parse(event.data);
+
+                // Handle New Orders
+                if (data.event === 'new_order') {
+                    setOrders(prev => {
+                        if (prev.some(o => o.id === data.order.id)) return prev;
+                        return [...prev, data.order];
+                    });
+                    audioRef.current?.play().catch(e => console.error("Audio failed", e));
+                }
+
+                // Handle Status Updates (Sync from other screens)
+                if (data.event === 'order_update') {
+                    const { id, status } = data.order;
+                    setOrders(prev => prev.map(o =>
+                        o.id === id ? { ...o, status } : o
+                    ));
                 }
             };
 
@@ -94,31 +121,32 @@ export function KitchenDisplay() {
             clearTimeout(reconnectTimeout);
             ws.current?.close();
         };
-    }, [config]);
+    }, [config, isActive]);
 
-    // --- 3. Logic ---
-    const handleNewOrder = (order: Order) => {
-        setOrders(prev => {
-            if (prev.some(o => o.id === order.id)) return prev;
-            return [...prev, order];
-        });
-        audioRef.current?.play().catch(e => console.error("Audio failed", e));
-    };
-
-    const handleBump = (orderId: string) => {
-        // Optimistic: Mark as READY immediately
-        // In KDS view, READY means "Done and off the screen"
+    // --- 4. Logic ---
+    const handleBump = async (orderId: string) => {
+        // Optimistic UI Update
         setOrders(prev => prev.map(o =>
             o.id === orderId ? { ...o, status: 'READY' } : o
         ));
 
-        // In a real app, send API request here
-        // fetch(`/api/v1/orders/${orderId}/status`, { method: 'PUT', body: ... })
+        // API Call to Persist
+        try {
+            await fetch(`/api/v1/store/orders/${orderId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'READY' })
+            });
+        } catch (err) {
+            console.error("Failed to bump order", err);
+            // Revert on failure (optional)
+        }
     };
 
+    // Filter out orders that are marked as READY/COMPLETED
     const activeOrders = orders.filter(o => o.status !== 'READY');
 
-    // --- 4. Render ---
+    // --- 5. Render ---
     if (!config) return <div className="bg-neutral-950 h-screen text-white flex items-center justify-center">Loading KDS...</div>;
 
     if (!isActive) {
@@ -171,7 +199,11 @@ export function KitchenDisplay() {
 
             {/* Grid Canvas */}
             <main className="flex-1 p-4 overflow-y-auto">
-                {activeOrders.length === 0 ? (
+                {loading ? (
+                    <div className="h-full flex items-center justify-center">
+                        <Loader2 className="animate-spin text-gray-600" size={48} />
+                    </div>
+                ) : activeOrders.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center opacity-20">
                         <Bell size={120} />
                         <h2 className="text-4xl font-bold mt-8">All Caught Up</h2>

@@ -1,5 +1,15 @@
 import uuid
-from sqlalchemy import Column, String, Integer, Boolean, JSON, ForeignKey, Text
+from datetime import datetime
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    Boolean,
+    JSON,
+    ForeignKey,
+    Text,
+    DateTime,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.base import Base
@@ -98,3 +108,4 @@ class Order(Base):
     status = Column(String, default="PENDING")
     total_amount = Column(Integer, nullable=False)
     items = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
