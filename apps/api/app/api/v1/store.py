@@ -75,7 +75,7 @@ def get_store_menu(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/orders", response_model=OrderResponse, status_code=201)
-async def create_store_order(  # <--- Made Async
+async def create_store_order(
     payload: OrderCreateRequest, request: Request, db: Session = Depends(get_db)
 ):
     tenant = get_tenant_by_host(request, db)
@@ -91,31 +91,42 @@ async def create_store_order(  # <--- Made Async
     db.add(new_order)
 
     try:
+        # 1. Flush to generate ID and validate constraints within the transaction
+        db.flush()
+
+        # 2. Capture data into memory BEFORE commit expires the object
+        order_id = str(new_order.id)
+        order_status = new_order.status
+        order_items = new_order.items
+        order_amount = new_order.total_amount
+        order_customer = new_order.customer_name
+
+        # 3. Commit the transaction
         db.commit()
-        db.refresh(new_order)
+
+        # REMOVED: db.refresh(new_order) - This caused the crash
     except Exception:
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to place order")
 
-    # Broadcast to KDS (Kitchen Display System)
-    # We broadcast the full order details so the KDS can render it immediately
+    # Broadcast using the captured variables
     await manager.broadcast_to_tenant(
         tenant.schema_name,
         {
             "event": "new_order",
             "order": {
-                "id": str(new_order.id),
-                "customer_name": new_order.customer_name,
-                "total_amount": new_order.total_amount,
-                "items": new_order.items,
-                "status": new_order.status,
+                "id": order_id,
+                "customer_name": order_customer,
+                "total_amount": order_amount,
+                "items": order_items,
+                "status": order_status,
                 "created_at": str(datetime.now()),
             },
         },
     )
 
     return OrderResponse(
-        id=str(new_order.id),
-        status=new_order.status,
+        id=order_id,
+        status=order_status,
         message="Order placed successfully",
     )
