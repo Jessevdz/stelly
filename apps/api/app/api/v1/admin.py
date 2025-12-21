@@ -15,11 +15,12 @@ from app.db.models import (
 from app.schemas.menu import (
     CategoryCreate,
     CategoryResponse,
-    CategoryReorder,  # Imported
+    CategoryReorder,
     MenuItemCreate,
     MenuItemResponse,
     ModifierGroupCreate,
     ModifierGroupResponse,
+    MenuItemReorder,
 )
 from app.api.v1.deps import get_current_user
 from pydantic import BaseModel
@@ -109,12 +110,11 @@ def delete_category(
 
 
 # --- Menu Items ---
-# ... (Rest of the file remains unchanged)
 @router.get("/items", response_model=List[MenuItemResponse])
 def list_items(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
-    return db.query(MenuItem).all()
+    return db.query(MenuItem).order_by(MenuItem.rank.asc()).all()
 
 
 @router.post("/items", response_model=MenuItemResponse)
@@ -158,6 +158,41 @@ def update_item(
 
     db.refresh(item)
     return item
+
+
+@router.put("/items/reorder")
+def reorder_items(
+    payload: List[MenuItemReorder],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Batch update menu item ranks.
+    """
+    updates_map = {item.id: item.rank for item in payload}
+    items = db.query(MenuItem).filter(MenuItem.id.in_(updates_map.keys())).all()
+
+    for item in items:
+        if item.id in updates_map:
+            item.rank = updates_map[item.id]
+
+    db.commit()
+    return {"message": "Items reordered successfully"}
+
+
+@router.delete("/items/{item_id}")
+def delete_item(
+    item_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    item = db.query(MenuItem).filter(MenuItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    db.delete(item)
+    db.commit()
+    return {"message": "Item deleted"}
 
 
 @router.post("/items/{item_id}/modifiers", response_model=ModifierGroupResponse)

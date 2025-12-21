@@ -62,11 +62,11 @@ class MenuItem(Base):
     price = Column(Integer, nullable=False)  # In cents
     image_url = Column(String, nullable=True)
     is_available = Column(Boolean, default=True)
+    rank = Column(Integer, default=0)
 
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"), nullable=True)
     category = relationship("Category", back_populates="items")
 
-    # New Relationship
     modifier_groups = relationship(
         "ModifierGroup", back_populates="item", cascade="all, delete-orphan"
     )

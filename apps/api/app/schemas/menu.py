@@ -94,3 +94,8 @@ class MenuItemResponse(MenuItemBase):
 
 class CategoryWithItems(CategoryResponse):
     items: List[MenuItemResponse] = []
+
+
+class MenuItemReorder(BaseModel):
+    id: UUID
+    rank: int
