@@ -18,6 +18,8 @@ OmniOrder utilizes a hybrid database architecture. It maintains a single **Publi
 
 ## 2. High-Level Entity Relationship Diagram (ERD)
 
+
+
 ```mermaid
 erDiagram
     %% Public Schema Context
@@ -56,6 +58,21 @@ erDiagram
         Boolean is_available
         UUID category_id FK
     }
+    
+    "tenant_x.modifier_groups" {
+        UUID id PK
+        String name "e.g. Size, Toppings"
+        Integer min_selection "0=Optional"
+        Integer max_selection "1=Radio"
+        UUID item_id FK
+    }
+
+    "tenant_x.modifier_options" {
+        UUID id PK
+        String name "e.g. Small, Cheese"
+        Integer price_adjustment "In cents"
+        UUID group_id FK
+    }
 
     "tenant_x.orders" {
         UUID id PK
@@ -67,6 +84,9 @@ erDiagram
 
     %% Relationships within Tenant Schema
     "tenant_x.categories" ||--|{ "tenant_x.menu_items" : "categorizes"
+    "tenant_x.menu_items" ||--|{ "tenant_x.modifier_groups" : "has"
+    "tenant_x.modifier_groups" ||--|{ "tenant_x.modifier_options" : "contains"
+
 
 ```
 
@@ -88,7 +108,7 @@ The registry of all restaurant clients.
 | `name` | `VARCHAR` | Not Null | Human-readable name (e.g., "Pizza Hut"). |
 | `schema_name` | `VARCHAR` | **Unique**, Not Null | The physical Postgres schema name (e.g., `tenant_pizzahut`). Used in `SET search_path`. |
 | `domain` | `VARCHAR` | **Unique**, Not Null | The incoming Host header used for routing (e.g., `pizza.localhost`). |
-| `theme_config` | `JSONB` | Default: `{}` | Stores branding: `primary_color`, `font_family`, `preset`. |
+| `theme_config` | `JSONB` | Default: `'{}'` | Stores branding: `primary_color`, `font_family`, `preset`. |
 
 ---
 
@@ -134,6 +154,29 @@ The actual products for sale.
 | `image_url` | `VARCHAR` | Nullable | Link to external image storage. |
 | `is_available` | `BOOLEAN` | Default: `True` | Quick toggle for "Sold Out" status (KDS). |
 
+### Table: `modifier_groups`
+
+Defines a set of choices for an item (e.g., "Choose Size" or "Select Toppings").
+
+| Column | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| **`id`** | `UUID` | **PK**, Default: `uuid4` | Unique Group ID. |
+| `item_id` | `UUID` | **FK** (`menu_items.id`) | The parent item. |
+| `name` | `VARCHAR` | Not Null | Display name (e.g., "Size"). |
+| `min_selection` | `INTEGER` | Default: `0` | `0` = Optional, `1+` = Required. |
+| `max_selection` | `INTEGER` | Default: `1` | `1` = Radio Button, `>1` = Checkboxes. |
+
+### Table: `modifier_options`
+
+The actual choices within a group.
+
+| Column | Type | Constraints | Description |
+| --- | --- | --- | --- |
+| **`id`** | `UUID` | **PK**, Default: `uuid4` | Unique Option ID. |
+| `group_id` | `UUID` | **FK** (`modifier_groups.id`) | Parent group. |
+| `name` | `VARCHAR` | Not Null | Display name (e.g., "Medium", "Extra Cheese"). |
+| `price_adjustment` | `INTEGER` | Default: `0` | Amount (in cents) to add to base price. |
+
 ### Table: `orders`
 
 Transactional records.
@@ -144,10 +187,7 @@ Transactional records.
 | `customer_name` | `VARCHAR` | Not Null | Name provided at checkout. |
 | `status` | `VARCHAR` | Default: `'PENDING'` | Workflow state (`PENDING` -> `COOKING` -> `DONE`). |
 | `total_amount` | `INTEGER` | Not Null | Final transaction value in cents. |
-| `items` | `JSONB` | Not Null | **Data Snapshot.** Stores a JSON array of the items *at the time of purchase*. |
-
-> **Why JSON for Order Items?**
-> We do not use a relational `order_items` table in this design. Using a JSON snapshot ensures that if a restaurant changes the price or name of "The OmniBurger" next week, the historical order record remains accurate to what was actually purchased today.
+| `items` | `JSONB` | Not Null | **Data Snapshot.** Stores a JSON array of the items *at the time of purchase*, including selected modifiers. |
 
 ---
 
@@ -161,8 +201,6 @@ How the API knows which schema to query:
 2. **Extract:** Reads `Host: pizza.localhost` header.
 3. **Lookup:** Queries `public.tenants` to find `schema_name = 'tenant_pizzahut'`.
 4. **Context Switch:** Executes the raw SQL command on the session:
-
-
 5. **Execution:** All subsequent SQLAlchemy queries (e.g., `db.query(Order).all()`) implicitly target `tenant_pizzahut.orders`.
 
 ### B. Provisioning (The "God Mode" Transaction)
@@ -181,17 +219,7 @@ Managing schema changes across 1 vs. 1,000 tenants is handled in `apps/api/alemb
 
 * **Public Migrations:** Filter `include_object` where `schema == 'public'`.
 * **Tenant Migrations:**
+
 1. Alembic fetches a list of all schemas from `public.tenants`.
 2. It iterates through the list.
 3. For each schema, it sets the search path and runs the migration script (e.g., `add_column_loyalty_points`).
-
-
-
----
-
-## 6. Future Data Scaling Considerations
-
-1. **Connection Pooling:** Currently, the system relies on a single pool. As tenants grow, `pgbouncer` should be introduced to multiplex connections across schemas.
-2. **Cross-Tenant Analytics:** Running `SELECT sum(total_amount)` across 1,000 schemas is slow. A generic ETL pipeline will be needed to aggregate data into a `public.analytics` warehouse table.
-3. **Archival:** Old orders in tenant schemas should be moved to cold storage (S3 Parquet files) after 12 months to keep index sizes small.
-

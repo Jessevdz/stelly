@@ -29,8 +29,8 @@ graph TD
         end
     end
 
-    Client -->|http://pizza.localhost| Nginx
-    Client -->|http://burger.localhost| Nginx
+    Client -->|[http://pizza.localhost](http://pizza.localhost)| Nginx
+    Client -->|[http://burger.localhost](http://burger.localhost)| Nginx
     
     Nginx -->|/api/*| API
     Nginx -->|/*| Web
@@ -40,6 +40,7 @@ graph TD
     note[Host Header Preserved for Tenant Resolution]
     style note fill:#f9f,stroke:#333,stroke-width:2px,color:black
     Client -.-> note
+
 
 ```
 
@@ -52,22 +53,21 @@ The backend is built on **FastAPI** and **SQLAlchemy**, utilizing a middleware-d
 ### Key Components
 
 1. **Tenant Resolution Middleware:**
-    * Intercepts every request.
-    * Extracts the `Host` header (e.g., `pizza.localhost`).
-    * Resolves the specific Tenant ID and Schema Name from the `public.tenants` table.
-    * **Context Switching:** Executes `SET search_path TO {tenant_schema}, public` on the database session. This ensures that a query for `SELECT * FROM orders` automatically hits `tenant_pizzahut.orders` without changing application code.
+* Intercepts every request.
+* Extracts the `Host` header (e.g., `pizza.localhost`).
+* Resolves the specific Tenant ID and Schema Name from the `public.tenants` table.
+* **Context Switching:** Executes `SET search_path TO {tenant_schema}, public` on the database session. This ensures that a query for `SELECT * FROM orders` automatically hits `tenant_pizzahut.orders` without changing application code.
 
 2. **Provisioning System (`/sys/provision`):**
-    * Transactional workflow that:
-        1. Creates a record in the `public` schema.
-        2. Executes raw SQL to create a new Postgres Schema.
-        3. Iterates through SQLAlchemy models to build tables dynamically within that new schema.
-        4. Seeds initial data (Admin user, Default Menu).
-
+* Transactional workflow that:
+1. Creates a record in the `public` schema.
+2. Executes raw SQL to create a new Postgres Schema.
+3. Iterates through SQLAlchemy models to build tables dynamically within that new schema.
+4. Seeds initial data (Admin user, Default Menu).
 
 3. **Real-Time KDS (WebSockets):**
-    * The `ConnectionManager` groups WebSocket connections by `schema_name`.
-    * When an order is placed via REST, the event is broadcast only to the specific tenant's WebSocket channel, ensuring data privacy.
+* The `ConnectionManager` groups WebSocket connections by `schema_name`.
+* When an order is placed via REST, the event is broadcast only to the specific tenant's WebSocket channel, ensuring data privacy.
 
 
 
@@ -86,6 +86,7 @@ sequenceDiagram
     S->>T: SELECT * FROM categories
     T-->>S: Returns Pizza Categories
     S-->>C: JSON Response
+
 ```
 
 ---
@@ -100,11 +101,13 @@ Instead of hardcoding colors, the application uses CSS Variables (Tokens) that a
 
 1. **Boot Phase:** On load, `StoreLayout` fetches configuration via `useTenantConfig`.
 2. **Asset Injection:**
-    * **Fonts:** The `FontLoader` component dynamically fetches and injects Google Fonts based on the config.
-    * **Colors/Radius:** The `applyTheme` utility maps the configuration (or a Preset like "Mono Luxe" or "Fresh Market") to CSS variables (`--color-primary`, `--radius-lg`) applied to the root element.
+* **Fonts:** The `FontLoader` component dynamically fetches and injects Google Fonts based on the config.
+* **Colors/Radius:** The `applyTheme` utility maps the configuration (or a Preset like "Mono Luxe" or "Fresh Market") to CSS variables (`--color-primary`, `--radius-lg`) applied to the root element.
+
+
 3. **Component Adaptation:**
-    * Components like `BrandButton` and `HeroSection` rely entirely on these tokens.
-    * Layouts (Centered vs. Split vs. Banner) are toggled via the `preset` configuration.
+* Components like `BrandButton` and `HeroSection` rely entirely on these tokens.
+* Layouts (Centered vs. Split vs. Banner) are toggled via the `preset` configuration.
 
 
 
@@ -151,6 +154,7 @@ graph TD
     Store --> Cart
     
     style Tokens fill:#f9f,stroke:#333,color:black
+
 ```
 
 ---
@@ -160,11 +164,13 @@ graph TD
 The database uses a hybrid shared/isolated approach:
 
 * **Public Schema (`public`):**
-    * **Tenants Table:** Stores routing rules (`domain`), system IDs (`schema_name`), and visual config (`theme_config` JSON).
+* **Tenants Table:** Stores routing rules (`domain`), system IDs (`schema_name`), and visual config (`theme_config` JSON).
+
+
 * **Tenant Schemas (`tenant_*`):**
-    * Identical structure replicated for every customer.
-        * **Users:** Authentication and Role-Based Access Control.
-        * **Menu:** `Categories` (1:N) `MenuItems`.
-        * **Orders:** Transactional data containing JSON snapshots of ordered items.
+* Identical structure replicated for every customer.
+* **Users:** Authentication and Role-Based Access Control.
+* **Menu Hierarchy:** `Categories` -> `MenuItems` -> `ModifierGroups` -> `ModifierOptions`.
+* **Orders:** Transactional data containing JSON snapshots of ordered items.
 
 This structure allows the platform to scale to thousands of tenants without massive `WHERE tenant_id = X` clauses, while simplifying data compliance (GDPR/CCPA) by keeping tenant data physically separated in schemas.

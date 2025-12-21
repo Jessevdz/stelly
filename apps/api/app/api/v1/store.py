@@ -2,7 +2,14 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from app.db.session import get_db
-from app.db.models import Tenant, MenuItem, Order, Category
+from app.db.models import (
+    Tenant,
+    MenuItem,
+    Order,
+    Category,
+    ModifierGroup,
+    ModifierOption,
+)
 from app.schemas.menu import CategoryWithItems
 from app.core.socket import manager
 from pydantic import BaseModel
@@ -68,9 +75,15 @@ def get_store_menu(request: Request, db: Session = Depends(get_db)):
     tenant = get_tenant_by_host(request, db)
     db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
 
+    # We need to eager load the nested structure:
+    # Category -> Items -> ModifierGroups -> Options
     categories = (
         db.query(Category)
-        .options(joinedload(Category.items))
+        .options(
+            joinedload(Category.items)
+            .joinedload(MenuItem.modifier_groups)
+            .joinedload(ModifierGroup.options)
+        )
         .order_by(Category.rank.asc())
         .all()
     )

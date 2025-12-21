@@ -22,6 +22,10 @@ export function MenuBuilder() {
     const [items, setItems] = useState<MenuItem[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // State for Modifiers
+    const [selectedItemForMods, setSelectedItemForMods] = useState<MenuItem | null>(null);
+    const [newGroup, setNewGroup] = useState({ name: '', min: 0, max: 1, optionsStr: '' });
+
     // Form State
     const [activeTab, setActiveTab] = useState<'categories' | 'items'>('items');
     const [newItem, XZ] = useState<MenuItem>({
@@ -65,6 +69,33 @@ export function MenuBuilder() {
         // Reset but keep category for rapid entry
         XZ(prev => ({ ...prev, name: '', description: '', price: 0, image_url: '' }));
         fetchData();
+    };
+
+    const handleAddModifiers = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedItemForMods?.id) return;
+
+        // Parse options string "Cheese:100, Bacon:200"
+        const options = newGroup.optionsStr.split(',').map(s => {
+            const [name, price] = s.split(':');
+            return { name: name.trim(), price_adjustment: price ? parseInt(price.trim()) : 0 };
+        });
+
+        const payload = {
+            name: newGroup.name,
+            min_selection: newGroup.min,
+            max_selection: newGroup.max,
+            options: options
+        };
+
+        await fetch(`/api/v1/admin/items/${selectedItemForMods.id}/modifiers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(payload)
+        });
+
+        setNewGroup({ name: '', min: 0, max: 1, optionsStr: '' });
+        fetchData(); // Refresh to see changes
     };
 
     if (loading) return <div>Loading Builder...</div>;
@@ -208,17 +239,66 @@ export function MenuBuilder() {
                                         <h3 className="font-bold text-lg text-gray-800 mb-2">{cat.name}</h3>
                                         <div className="space-y-3">
                                             {catItems.map(item => (
-                                                <div key={item.id} className="flex gap-3 bg-white shadow-sm border rounded-lg p-3">
-                                                    {item.image_url && (
-                                                        <img src={item.image_url} alt="" className="h-16 w-16 object-cover rounded-md" />
-                                                    )}
-                                                    <div className="flex-1">
-                                                        <div className="font-semibold text-gray-900">{item.name}</div>
-                                                        <div className="text-xs text-gray-500 mb-1">{item.description}</div>
-                                                        <div className="font-bold text-sm text-gray-700">${(item.price / 100).toFixed(2)}</div>
+                                                <div key={item.id} className="bg-white shadow-sm border rounded-lg p-3">
+                                                    <div className="flex gap-3">
+                                                        {item.image_url && <img src={item.image_url} alt="" className="h-16 w-16 object-cover rounded-md" />}
+                                                        <div className="flex-1">
+                                                            <div className="font-semibold text-gray-900">{item.name}</div>
+                                                            <div className="font-bold text-sm text-gray-700">${(item.price / 100).toFixed(2)}</div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setSelectedItemForMods(item)}
+                                                            className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded self-start"
+                                                        >
+                                                            Modifiers
+                                                        </button>
                                                     </div>
+
+                                                    {/* Render existing groups */}
+                                                    {(item as any).modifier_groups?.length > 0 && (
+                                                        <div className="mt-2 pl-2 border-l-2 border-gray-200">
+                                                            {(item as any).modifier_groups.map((g: any) => (
+                                                                <div key={g.id} className="text-xs text-gray-500">
+                                                                    {g.name} ({g.options.length} opts)
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
+
+                                            {/* Modifier Modal/Panel */}
+                                            {selectedItemForMods && (
+                                                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                                                    <div className="bg-white p-6 rounded-lg w-96">
+                                                        <h3 className="font-bold text-lg mb-4">Add Modifiers to {selectedItemForMods.name}</h3>
+                                                        <form onSubmit={handleAddModifiers} className="space-y-3">
+                                                            <input
+                                                                className="w-full border p-2 rounded"
+                                                                placeholder="Group Name (e.g. Size)"
+                                                                value={newGroup.name}
+                                                                onChange={e => setNewGroup({ ...newGroup, name: e.target.value })}
+                                                                required
+                                                            />
+                                                            <div className="flex gap-2">
+                                                                <input type="number" className="w-1/2 border p-2 rounded" placeholder="Min (0)" value={newGroup.min} onChange={e => setNewGroup({ ...newGroup, min: parseInt(e.target.value) })} />
+                                                                <input type="number" className="w-1/2 border p-2 rounded" placeholder="Max (1)" value={newGroup.max} onChange={e => setNewGroup({ ...newGroup, max: parseInt(e.target.value) })} />
+                                                            </div>
+                                                            <textarea
+                                                                className="w-full border p-2 rounded h-20"
+                                                                placeholder="Options (Name:PriceCents)&#10;Small:0, Medium:100, Large:200"
+                                                                value={newGroup.optionsStr}
+                                                                onChange={e => setNewGroup({ ...newGroup, optionsStr: e.target.value })}
+                                                                required
+                                                            />
+                                                            <div className="flex gap-2 pt-2">
+                                                                <button type="button" onClick={() => setSelectedItemForMods(null)} className="flex-1 py-2 bg-gray-200 rounded">Cancel</button>
+                                                                <button className="flex-1 py-2 bg-blue-600 text-white rounded">Save</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )

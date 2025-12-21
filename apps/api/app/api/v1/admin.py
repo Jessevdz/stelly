@@ -4,12 +4,21 @@ from typing import List, Literal
 from uuid import UUID
 
 from app.db.session import get_db
-from app.db.models import Category, MenuItem, User
+from app.db.models import (
+    Category,
+    MenuItem,
+    User,
+    ModifierGroup,
+    ModifierOption,
+    Tenant,
+)
 from app.schemas.menu import (
     CategoryCreate,
     CategoryResponse,
     MenuItemCreate,
     MenuItemResponse,
+    ModifierGroupCreate,
+    ModifierGroupResponse,
 )
 from app.api.v1.deps import get_current_user
 from pydantic import BaseModel
@@ -95,6 +104,60 @@ def update_item(
     db.commit()
     db.refresh(item)
     return item
+
+
+@router.post("/items/{item_id}/modifiers", response_model=ModifierGroupResponse)
+def add_modifier_group(
+    item_id: UUID,
+    payload: ModifierGroupCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Add a modifier group (and its options) to an item.
+    """
+    item = db.query(MenuItem).filter(MenuItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    # Create Group
+    group = ModifierGroup(
+        item_id=item_id,
+        name=payload.name,
+        min_selection=payload.min_selection,
+        max_selection=payload.max_selection,
+    )
+    db.add(group)
+    db.flush()  # Generate ID
+
+    # Create Options
+    for opt in payload.options:
+        db.add(
+            ModifierOption(
+                group_id=group.id,
+                name=opt.name,
+                price_adjustment=opt.price_adjustment,
+            )
+        )
+
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+@router.delete("/modifiers/{group_id}")
+def delete_modifier_group(
+    group_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    group = db.query(ModifierGroup).filter(ModifierGroup.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Modifier group not found")
+
+    db.delete(group)
+    db.commit()
+    return {"message": "Deleted"}
 
 
 # --- Settings / Theme Config ---
