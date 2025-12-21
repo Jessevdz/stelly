@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface BrandButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: 'primary' | 'secondary' | 'ghost' | 'outline';
+    variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'inverse' | 'outline-inverse';
     size?: 'sm' | 'md' | 'lg';
     fullWidth?: boolean;
     icon?: React.ReactNode;
@@ -16,7 +16,7 @@ export const BrandButton: React.FC<BrandButtonProps> = ({
     className = '',
     ...props
 }) => {
-    // 1. Base Styles: Flex, Transition, Font Control via Tokens
+    // 1. Base Styles
     const baseStyles = `
         inline-flex items-center justify-center gap-2 
         transition-all duration-200 active:scale-[0.98]
@@ -40,6 +40,14 @@ export const BrandButton: React.FC<BrandButtonProps> = ({
         `,
         ghost: `
             bg-transparent text-text-muted hover:text-primary hover:bg-surface/50
+        `,
+        inverse: `
+            bg-white text-black 
+            hover:bg-gray-200 border border-transparent shadow-lg
+        `,
+        'outline-inverse': `
+            bg-transparent border-2 border-white text-white 
+            hover:bg-white hover:text-black
         `
     };
 

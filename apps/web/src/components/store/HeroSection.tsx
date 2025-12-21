@@ -151,15 +151,16 @@ export const HeroSection: React.FC<HeroProps> = ({
                             <BrandButton
                                 onClick={() => document.getElementById('cat-list')?.scrollIntoView({ behavior: 'smooth' })}
                                 size="lg"
-                                className="min-w-[160px] bg-white text-black hover:bg-gray-200 border-none"
+                                variant="inverse"
+                                className="min-w-[160px]"
                             >
                                 View Menu
                             </BrandButton>
                             <BrandButton
                                 onClick={() => setShowInfo(true)}
-                                variant="outline"
+                                variant="outline-inverse"
                                 size="lg"
-                                className="min-w-[160px] border-white text-white hover:bg-white hover:text-black"
+                                className="min-w-[160px]"
                             >
                                 Location & Info
                             </BrandButton>

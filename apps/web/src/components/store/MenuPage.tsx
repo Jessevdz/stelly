@@ -138,7 +138,7 @@ export function MenuPage() {
             <CategoryNav categories={categories} activeCategory={activeCategory} />
 
             {/* Menu Grid Canvas */}
-            <div className="max-w-screen-xl mx-auto px-4 py-8 md:px-8">
+            <div id="cat-list" className="max-w-screen-xl mx-auto px-4 py-8 md:px-8 scroll-mt-24">
                 {categories.map((cat) => {
                     if (cat.items.length === 0) return null;
 
