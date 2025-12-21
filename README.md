@@ -87,66 +87,7 @@ The platform is divided into four distinct interaction contexts, each catering t
 * **Goal:** Order food quickly on a mobile device.
 * **Context:** Uses the **Public Storefront**. Accessed via Custom Domains (e.g., `pizza.com`) with full brand immersion.
 
-
-
-## 4. High-Level Architecture
-
-The system follows a modern **Monorepo** structure containing a React frontend, a Python FastAPI backend, and a robust routing layer.
-
-### The "Edge" Routing Layer
-
-To support custom domains, we utilize a reverse proxy (Nginx) strategy before hitting the application logic.
-
-* **Scenario A (Subdomain):** Request to `burger.omniorder.com`. The app extracts `burger` and queries the tenant config.
-* **Scenario B (Custom Domain):** Request to `order.joespizza.com`. The Middleware inspects the `Host` header, queries the `public.tenants` table for a `custom_domain` match, and resolves the Tenant ID.
-
-### Core Flows
-
-* **Dynamic Theming (Flow A):** On load, the frontend fetches a configuration object. This triggers not just CSS variable injection, but also **Dynamic Asset Loading** (fetching Google Fonts on the fly).
-* **Backend Isolation (Flow B):** A middleware interceptor identifies the tenant via the resolved ID and switches the PostgreSQL `search_path` to the specific tenant schema.
-
-```mermaid
-graph LR
-    subgraph Clients
-        Admin[Super Admin]
-        Owner[Restaurant Owner]
-        Chef[Kitchen Staff]
-        Cust[Customer]
-    end
-
-    subgraph EdgeLayer [Routing & Resolution]
-        Proxy[Nginx Proxy]
-        Resolution{Resolve Tenant}
-    end
-
-    subgraph AppServer [FastAPI Backend]
-        Middleware[Tenant Middleware]
-        API[API Endpoints]
-        Worker[Async Worker]
-    end
-
-    subgraph DataLayer [PostgreSQL]
-        PublicDB[(Public Schema<br/>Routing & Config)]
-        TenantDB[(Tenant Schemas<br/>Orders & Menu)]
-    end
-
-    %% Flows
-    Admin -->|admin.omniorder.com| Proxy
-    Owner -->|tenant.omniorder.com| Proxy
-    Chef -->|tenant.omniorder.com/kitchen| Proxy
-    Cust -->|order.joespizza.com| Proxy
-
-    Proxy -->|Host Header| Resolution
-    Resolution -- Lookup --> PublicDB
-    Resolution -->|Inject Tenant ID| Middleware
-    Middleware -->|Set Search Path| TenantDB
-    Middleware --> API
-    API -.->|Async Tasks| Worker
-    Worker -->|Batch Migrations| TenantDB
-
-```
-
-## 5. Technology Stack
+## 4. Technology Stack
 
 ### Frontend (Client)
 
@@ -162,47 +103,7 @@ graph LR
 * **Isolation Strategy:** **Schema-per-Tenant**.
 * **Real-time:** WebSockets for Kitchen Display System.
 
----
-
-## 6. Theming & Customization Architecture
-
-We do not build separate apps; we build one "chameleon" app that adapts its skin and assets at runtime.
-
-### A. The Data Strategy
-
-The styling configuration is stored in the `public` schema.
-
-**Table: `public.tenants**`
-
-```json
-{
-  "id": "uuid",
-  "name": "Pasta Paradise",
-  "domain": "pizza.localhost", 
-  "theme_config": {
-    "primary_color": "#FF5733",
-    "font_family": "Playfair Display"
-  }
-}
-
-```
-
-### B. The Injection Strategy (Frontend)
-
-Crucially, we must load assets that don't exist in the bundle.
-
-1. **Boot:** `App.tsx` calls `GET /api/v1/store/config`.
-2. **Asset Loader:** A `FontLoader` component parses `font_family`, constructs a Google Fonts URL, and dynamically appends a `<link>` tag to the document `<head>`.
-3. **CSS Injection:** Tailwind colors are bound to CSS variables (`--primary`), which are updated via inline styles on the root layout.
-
-## 7. Database Design & Operations
-
-We utilize **PostgreSQL Schemas** for strong isolation.
-
-1. **`public` Schema:** Contains shared system data (`tenants` table) and routing logic.
-2. **Tenant Schemas:** (e.g., `tenant_pizzahut`, `tenant_burgerking`). Replicated for each client. Contains **only** operational data (Orders, Menu, Users).
-
-## 8. Operational Workflow: Onboarding a New Client
+## 5. Operational Workflow: Onboarding a New Client
 
 ### Step 1: Provisioning
 
