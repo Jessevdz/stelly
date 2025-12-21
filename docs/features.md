@@ -1,123 +1,48 @@
-# Features
+# features
 
-## Phase 1: Critical Viability (Must-Have for First Transaction)
+### **Part 1: Storefront (End-User Experience)**
 
-*These features fill the gaps between "Prototype" and "Functioning Application."*
+#### **Tier 1: Vital (Cannot Launch Without)**
 
-### 1. Menu Modifiers & Variations (Backend & Frontend) [DONE]
+1. **Server-Side Price & Total Calculation**
+* **Why:** You cannot trust the client's `total_amount`. A user (or bug) could send a $0 total for a $50 order, messing up your revenue reporting and cashier expectations.
+* **Feature:** Refactor `POST /orders` to ignore the client's price. The backend must fetch the item prices + modifier costs from the DB and calculate the `total_amount` authoritatively before saving.
 
-The current menu model (`MenuItem`) is flat. Real restaurants require customization.
+2. **Human-Readable Order IDs ("Ticket Numbers")**
+* **Why:** A customer cannot walk up to the counter and say "I'm Order UUID `a1b2-c3d4...`".
+* **Feature:** Implement a daily auto-incrementing counter (e.g., `#001`, `#002`) scoped to the Tenant. This number must be prominent on the "Order Success" screen and the KDS.
 
-* **Database:** Create `modifiers`, `modifier_groups`, and `item_modifiers` tables in the Tenant Schema.
-* **Frontend (MenuBuilder):** Update the CMS to allow nested configurations (e.g., "Choose Size: S/M/L" or "Add-ons: Cheese +$1").
-* **Frontend (Storefront):** Update `ItemDetailModal.tsx` to handle radio buttons (required choices) and checkboxes (optional add-ons) and calculate price adjustments dynamically.
+3. **Fulfillment Details (Name/Table #)**
+* **Why:** The kitchen and cashier need to know *who* this is for.
+* **Feature:** A mandatory "Guest Details" step before checkout:
+* **Name:** Required for Pickup.
 
-### 2. Image Upload & Storage Service [DONE]
+#### **Tier 2: User Confidence**
 
-Currently, the app relies on external Unsplash URLs.
+4. **Order Status Polling/WebSocket**
+* **Why:** Since they haven't paid, customers are anxious. "Did they actually get it?"
+* **Feature:** A persistent "Live Status" bar at the top of the browser session showing: *Sent → Kitchen Preparing → Ready for Pickup*.
 
-* **Infrastructure:** Integrate an S3-compatible object storage (AWS S3, MinIO, or Cloudflare R2).
-* **API:** Create an endpoint `POST /api/v1/admin/upload` that accepts files, sanitizes them, uploads to the bucket, and returns a public URL.
-* **Frontend:** Replace text inputs in `MenuBuilder.tsx` with a drag-and-drop file uploader.
-
-### 3. KDS State Persistence & Sync
-
-The current KDS performs an "optimistic" bump. If the browser refreshes, the status might revert or desync.
-
-* **API:** Implement the `PUT /api/v1/store/orders/{id}/status` endpoint to update the database.
-* **WebSockets:** Ensure the "Bump" event is broadcast back to *other* connected KDS screens (e.g., the expo station) so all screens stay in sync.
-
-### 4. Order Payment Processing
-
-Currently, the system creates orders without payment (`OrderCreateRequest`).
-
-* **Integration:** Integrate Stripe Connect.
-* **Data Model:** Add `payment_status`, `payment_provider_id` to the `Order` model.
-* **Frontend:** Integrate Stripe Elements into the `CartDrawer.tsx` checkout flow. Orders should only be sent to the KDS via WebSocket webhook *after* payment success.
+5. **Spam Protection (Rate Limiting)**
+* **Why:** Without a payment gate, a malicious actor (or a bored kid) can write a script to order 5,000 burgers and flood the KDS.
+* **Feature:** Strict Redis-based rate limiting on `POST /orders` (e.g., max 3 orders per 10 minutes per IP/Device Fingerprint).
 
 ---
 
-## Phase 2: Operational & Tenant Maturity
+### **Part 2: Tenant Admin (Restaurant Operations)**
 
-*These features are required to sell the product to actual restaurant owners.*
+#### **Tier 1: Operational Control**
 
-### 5. Async Tenant Migration (Worker)
+1. **"Cashier Mode" (POS View)**
+* **Why:** The KDS is for cooking; it doesn't handle money. You need a screen for the front-of-house staff to settle the bill.
+* **Feature:** A new view in the Admin Dashboard showing "Active Unpaid Orders."
+* Actions: `Mark Paid` (Cash/Card Terminal), `Void/Cancel`.
+* This status change should sync to the KDS (optionally removing it or marking it "Paid").
 
-`apps/api/app/worker.py` is currently empty.
+2. **"Quick 86" (Inventory Toggle)**
+* **Why:** Running out of ingredients happens fast.
+* **Feature:** A mobile-friendly toggle list for Managers to instantly disable Items or Modifier Options (e.g., "No Avocados") so users can't order them.
 
-* **Feature:** When `POST /provision` happens, it currently blocks the HTTP request while running SQL. This will timeout in production.
-* **Implementation:** Move schema creation and Alembic migration triggers to a Celery/Redis background task.
-* **Batch Updates:** Create a workflow to apply a new migration (e.g., adding a `loyalty_points` column) to *all* 1,000+ tenant schemas iteratively without downtime.
-
-### 6. Staff Accounts & RBAC
-
-Currently, there is only one `admin` user per tenant.
-
-* **Data Model:** Expand `User` model to include permissions/scopes.
-* **Middleware:** Update `get_current_user` in `deps.py` to enforce scopes (e.g., A "Kitchen" user should access the KDS WebSocket but *not* be able to delete menu items in the Admin API).
-
-### 7. Store Configuration & Opening Hours
-
-* **Database:** Expand `Tenant.theme_config` or add a `store_settings` table to include:
-* Timezone.
-* Operating Hours (Open/Close times per day).
-* Tax Rate settings.
-
-
-* **Logic:** Middleware to reject `POST /orders` if the current time is outside operating hours.
-
-### 8. Order History & Reporting
-
-The Tenant Dashboard mocks data.
-
-* **API:** Create endpoints for aggregated data: `GET /api/v1/admin/analytics/sales`.
-* **Implementation:** Efficient SQL queries to group orders by day/hour and calculate revenue.
-* **Frontend:** Replace the hardcoded numbers in `TenantDashboard.tsx` with real data visualizations (using Recharts or Chart.js).
-
----
-
-## Phase 3: Platform Scalability (The Super Admin)
-
-*These features are for the SaaS business owner.*
-
-### 9. Automated Domain & SSL Management
-
-The vision mentions `order.joespizza.com`.
-
-* **Edge:** Update Nginx configuration or use a dynamic proxy (Traefik/Caddy) to handle automatic Let's Encrypt certificate generation for incoming custom domains.
-* **Verification:** Add a mechanism in `TenantsPage.tsx` to verify CNAME records before activating a custom domain.
-
-### 10. SaaS Billing (Subscription Management)
-
-The platform needs to get paid.
-
-* **Integration:** Integrate Stripe Billing for the SaaS tier (Standard vs. Enterprise).
-* **Logic:** Middleware check to disable access to `TenantLayout` routes if the subscription is inactive or past due.
-
-### 11. Cross-Schema Analytics
-
-The `PlatformDashboard.tsx` needs real data.
-
-* **Technical Challenge:** Querying across 100s of schemas is expensive.
-* **Solution:** Implement a data pipeline (ETL) or Materialized Views in the `public` schema that aggregate key metrics (Order Count, GMV) from tenant schemas periodically.
-
----
-
-## Phase 4: The "Chameleon" Vision (Advanced UX)
-
-*Features required to fully realize the design vision.*
-
-### 12. Advanced Theme Engine
-
-* **Typography:** The `FontLoader` currently assumes Google Fonts. It needs to handle font-weight loading strategies to prevent layout shift (CLS).
-* **Presets:** Fully implement the CSS variables for the "Fresh Market" and "Tech Ocean" presets (currently `theme.ts` exists, but components like `ItemDetailModal` contain hardcoded conditional logic that should be moved to CSS tokens).
-
-### 13. KDS Hardware Resiliency
-
-* **Offline Mode:** Implement Service Workers (PWA) for the KDS. If the internet cuts out, the kitchen should still be able to bump tickets locally, syncing status when the connection returns.
-* **Sound Context:** Improve the `AudioContext` handling in `KitchenDisplay.tsx`. Browsers often block auto-playing sounds; a robust "Unlock Audio" UI interaction flow is needed.
-
-## 14. Customer Accounts & Loyalty
-
-* **Data Model:** Add `Customers` table to Tenant schemas.
-* **Features:** "Order Again" functionality, saving addresses, and a basic points-based loyalty system configurable by the tenant.
+3. **KDS Audio & Wake Lock**
+* **Why:** Tablets go to sleep, and kitchens are loud.
+* **Feature:** A "Start Shift" button on the KDS that triggers the Browser Wake Lock API (keeps screen on) and initializes the Audio Context for the "New Order" ding.
