@@ -7,7 +7,6 @@ from app.db.session import get_db
 from app.db.models import (
     Category,
     MenuItem,
-    User,
     ModifierGroup,
     ModifierOption,
     Tenant,
@@ -36,6 +35,10 @@ def restore_tenant_context(db: Session, request: Request):
     """
     host = request.headers.get("host", "").split(":")[0]
     # We query public.tenants explicitly to be safe
+    # Note: In strict OIDC/Deps flow, the db session might already be correctly set,
+    # but SQLAlchemy commits reset the transaction state, often clearing search_path
+    # if using connection pooling that resets.
+    db.execute(text("SET search_path TO public"))
     tenant = db.query(Tenant).filter(Tenant.domain == host).first()
     if tenant:
         db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
@@ -46,7 +49,7 @@ def restore_tenant_context(db: Session, request: Request):
 
 @router.get("/categories", response_model=List[CategoryResponse])
 def list_categories(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)
 ):
     return db.query(Category).order_by(Category.rank.asc()).all()
 
@@ -56,18 +59,13 @@ def create_category(
     request: Request,
     payload: CategoryCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     cat = Category(**payload.model_dump())
     db.add(cat)
 
-    # 1. Commit ends the current transaction (and the search_path setting)
     db.commit()
-
-    # 2. Restore the search_path for the new transaction that refresh() will start
     restore_tenant_context(db, request)
-
-    # 3. Refresh the object
     db.refresh(cat)
     return cat
 
@@ -76,15 +74,12 @@ def create_category(
 def reorder_categories(
     payload: List[CategoryReorder],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Batch update category ranks.
     """
-    # Create a map for O(1) lookup
     updates_map = {item.id: item.rank for item in payload}
-
-    # Fetch all categories involved
     categories = db.query(Category).filter(Category.id.in_(updates_map.keys())).all()
 
     for cat in categories:
@@ -99,7 +94,7 @@ def reorder_categories(
 def delete_category(
     cat_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     cat = db.query(Category).filter(Category.id == cat_id).first()
     if not cat:
@@ -112,7 +107,7 @@ def delete_category(
 # --- Menu Items ---
 @router.get("/items", response_model=List[MenuItemResponse])
 def list_items(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)
 ):
     return db.query(MenuItem).order_by(MenuItem.rank.asc()).all()
 
@@ -122,16 +117,13 @@ def create_item(
     request: Request,
     payload: MenuItemCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     item = MenuItem(**payload.model_dump())
     db.add(item)
 
     db.commit()
-
-    # Restore context before refresh
     restore_tenant_context(db, request)
-
     db.refresh(item)
     return item
 
@@ -140,11 +132,8 @@ def create_item(
 def reorder_items(
     payload: List[MenuItemReorder],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
-    """
-    Batch update menu item ranks.
-    """
     updates_map = {item.id: item.rank for item in payload}
     items = db.query(MenuItem).filter(MenuItem.id.in_(updates_map.keys())).all()
 
@@ -162,7 +151,7 @@ def update_item(
     item_id: UUID,
     payload: MenuItemCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     item = db.query(MenuItem).filter(MenuItem.id == item_id).first()
     if not item:
@@ -181,7 +170,7 @@ def update_item(
 def delete_item(
     item_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     item = db.query(MenuItem).filter(MenuItem.id == item_id).first()
     if not item:
@@ -198,16 +187,12 @@ def add_modifier_group(
     item_id: UUID,
     payload: ModifierGroupCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
-    """
-    Add a modifier group (and its options) to an item.
-    """
     item = db.query(MenuItem).filter(MenuItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    # Create Group
     group = ModifierGroup(
         item_id=item_id,
         name=payload.name,
@@ -215,9 +200,8 @@ def add_modifier_group(
         max_selection=payload.max_selection,
     )
     db.add(group)
-    db.flush()  # Generate ID
+    db.flush()
 
-    # Create Options
     for opt in payload.options:
         db.add(
             ModifierOption(
@@ -228,10 +212,7 @@ def add_modifier_group(
         )
 
     db.commit()
-
-    # Restore context before refresh
     restore_tenant_context(db, request)
-
     db.refresh(group)
     return group
 
@@ -240,7 +221,7 @@ def add_modifier_group(
 def delete_modifier_group(
     group_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
     group = db.query(ModifierGroup).filter(ModifierGroup.id == group_id).first()
     if not group:
@@ -263,7 +244,6 @@ class ThemeConfigSchema(BaseModel):
     preset: Literal["mono-luxe", "fresh-market", "tech-ocean"]
     primary_color: str
     font_family: str
-    # New Flexible Fields
     address: Optional[str] = "123 Culinary Avenue"
     phone: Optional[str] = "(555) 123-4567"
     email: Optional[str] = "hello@example.com"
@@ -274,11 +254,8 @@ class ThemeConfigSchema(BaseModel):
 def get_tenant_settings(
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
-    """
-    Fetch settings from the Public Tenant table based on the current host.
-    """
     host = request.headers.get("host", "").split(":")[0]
 
     # Switch to public schema to read the Tenant table
@@ -290,10 +267,9 @@ def get_tenant_settings(
 
     config = tenant.theme_config or {}
 
-    # Switch back to tenant schema for safety
+    # Switch back (though this is end of request, good hygiene)
     db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
 
-    # Default hours if none exist
     default_hours = [
         {"label": "Mon - Fri", "time": "11:00 AM - 10:00 PM"},
         {"label": "Sat - Sun", "time": "10:00 AM - 11:00 PM"},
@@ -315,22 +291,16 @@ def update_tenant_settings(
     payload: ThemeConfigSchema,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ):
-    """
-    Update the public tenant record with new theme config.
-    """
     host = request.headers.get("host", "").split(":")[0]
 
-    # 1. Switch to Public to write
     db.execute(text("SET search_path TO public"))
 
     tenant = db.query(Tenant).filter(Tenant.domain == host).first()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
 
-    # 2. Update Field
-    # Convert Pydantic list of models to list of dicts for JSON storage
     hours_data = [h.model_dump() for h in payload.operating_hours]
 
     new_config = {
@@ -347,8 +317,6 @@ def update_tenant_settings(
 
     db.commit()
     db.refresh(tenant)
-
-    # 3. Restore Context
     db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
 
     return payload

@@ -6,22 +6,44 @@ from sqlalchemy import text
 from app.db.session import get_db
 from app.db.models import Tenant
 from app.schemas.provision import TenantCreateRequest, TenantResponse
-from app.core.security import get_password_hash
+from app.api.v1.deps import get_current_user
+from app.core.config import settings
 
 router = APIRouter()
 
 
 @router.post("/provision", response_model=TenantResponse)
-def provision_tenant(payload: TenantCreateRequest, db: Session = Depends(get_db)):
-    # 1. Clean & Check Domain
+def provision_tenant(
+    payload: TenantCreateRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Provisions a new tenant.
+    Protected: Only accessible by Super Admins via the Admin Portal.
+    """
+
+    # 1. Authorization Check
+    # (Double check, though deps.py usually handles the context)
+    if not current_user.get("is_superuser"):
+        # Just in case they hit this endpoint from a tenant domain
+        if current_user.get("email") not in settings.SUPER_ADMINS:
+            raise HTTPException(
+                status_code=403, detail="Only Super Admins can provision tenants."
+            )
+
+    # 2. Clean & Check Domain
     clean_name = re.sub(r"[^a-zA-Z0-9]", "", payload.name.lower())
     schema_name = f"tenant_{clean_name}"
+
+    # Ensure we are in public schema for this check
+    db.execute(text("SET search_path TO public"))
 
     existing = db.query(Tenant).filter(Tenant.domain == payload.domain).first()
     if existing:
         raise HTTPException(status_code=400, detail="Domain already taken")
 
-    # 2. Create Tenant Record
+    # 3. Create Tenant Record
     new_tenant = Tenant(
         name=payload.name,
         domain=payload.domain,
@@ -40,7 +62,7 @@ def provision_tenant(payload: TenantCreateRequest, db: Session = Depends(get_db)
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-    # 3. Create Schema (Raw SQL)
+    # 4. Create Schema (Raw SQL)
     try:
         db.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema_name}"))
         db.commit()
@@ -49,7 +71,7 @@ def provision_tenant(payload: TenantCreateRequest, db: Session = Depends(get_db)
         db.commit()
         raise HTTPException(status_code=500, detail=f"Failed to create schema: {e}")
 
-    # 4. Create Tables & Seed Data
+    # 5. Create Tables & Seed Data
     from app.db.base import Base
     from app.db.session import engine
 
@@ -66,23 +88,9 @@ def provision_tenant(payload: TenantCreateRequest, db: Session = Depends(get_db)
             Base.metadata.create_all(bind=connection, tables=tenant_tables)
 
             # --- A. Create Default Admin ---
-            admin_email = f"admin@{payload.domain}"
-            hashed_pwd = get_password_hash("password")
-
-            connection.execute(
-                text(
-                    """
-                    INSERT INTO users (id, email, hashed_password, full_name, role)
-                    VALUES (:id, :email, :pwd, :name, 'admin')
-                    """
-                ),
-                {
-                    "id": uuid.uuid4(),
-                    "email": admin_email,
-                    "pwd": hashed_pwd,
-                    "name": "Super Admin",
-                },
-            )
+            # NOTE: With OIDC, we don't strictly need a local users table for auth,
+            # but we might keep it for local profile data or role mapping.
+            # We skip creating a password-based user here since we use SSO.
 
             # --- B. Seed Data (Menu with Ranks) ---
             if payload.seed_data:
@@ -91,7 +99,7 @@ def provision_tenant(payload: TenantCreateRequest, db: Session = Depends(get_db)
                 cat_sides_id = uuid.uuid4()
                 cat_drinks_id = uuid.uuid4()
 
-                # 2. Insert Categories (With Explicit Ranks)
+                # 2. Insert Categories
                 connection.execute(
                     text(
                         "INSERT INTO categories (id, name, rank) VALUES (:id, :name, :rank)"
@@ -103,7 +111,7 @@ def provision_tenant(payload: TenantCreateRequest, db: Session = Depends(get_db)
                     ],
                 )
 
-                # 3. Insert Menu Items (With Explicit Ranks)
+                # 3. Insert Menu Items
                 connection.execute(
                     text(
                         """
@@ -159,5 +167,5 @@ def provision_tenant(payload: TenantCreateRequest, db: Session = Depends(get_db)
     return TenantResponse(
         id=str(new_tenant.id),
         schema_name=schema_name,
-        message=f"Tenant created. Admin: {admin_email} / 'password'",
+        message=f"Tenant created. Login via SSO.",
     )

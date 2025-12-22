@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from typing import List
 
 
 class Settings(BaseSettings):
@@ -11,12 +12,15 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "omniorder"
     POSTGRES_PORT: str = "5432"
 
-    # Security
-    KZ_SECRET_KEY: str = (
-        "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-    )
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    # Security - OIDC (Authentik)
+    OIDC_DOMAIN: str = "http://auth.localhost"
+    OIDC_CLIENT_ID: str = "omniorder-api"
+    OIDC_AUDIENCE: str = "omniorder-api"
+    # Internal Docker URL to reach Authentik
+    JWKS_URL: str = "http://authentik-server:9000/application/o/omniorder/jwks/"
+    ALGORITHM: str = "RS256"
+    # Super Admins (Emails authorized to provision tenants)
+    SUPER_ADMINS: List[str] = ["jesse_vdz@hotmail.com"]
 
     # Storage (MinIO/S3)
     S3_ENDPOINT: str = "http://minio:9000"  # Internal Docker URL

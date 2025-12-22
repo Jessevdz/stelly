@@ -12,3 +12,4 @@ pydantic[email]
 bcrypt==4.0.1
 boto3
 redis
+httpx
