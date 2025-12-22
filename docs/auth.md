@@ -166,3 +166,93 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
     return UserContext(id=data["sub"], schema=tenant_schema)
 ```
+
+# Authentik Configuration Guide
+
+This guide details the manual steps required to configure **Authentik** as the Identity Provider (IdP) for the OmniOrder platform.
+
+Since we are running self-hosted Authentik via Docker, these steps must be performed in the Authentik Admin Interface after the stack is booted for the first time.
+
+---
+
+## 1. Initial Initialization
+
+1. **Boot the Stack:** Ensure `docker-compose up` is running.
+2. **Access the Setup Flow:** Navigate to [http://auth.localhost/if/flow/initial-setup/](http://auth.localhost/if/flow/initial-setup/).
+3. **Set Admin Password:** Define the password for the default `akadmin` user.
+   * *Note: Keep this safe. This is the "God Mode" account for your Identity Infrastructure.*
+
+---
+
+## 2. Create the Provider
+
+The Provider defines *how* authentication happens (protocol) and *where* tokens are sent.
+
+1. Log in to the **Admin Interface** (click "Admin Interface" in the top right if you land on the User Dashboard).
+2. Go to **Applications** -> **Providers** in the sidebar.
+3. Click **Create**.
+4. Select **OAuth2/OpenID Provider** and click **Next**.
+5. Fill in the form:
+   * **Name:** `OmniOrder Provider`
+   * **Authentication Flow:** `default-authentication-flow` (or explicitly select one).
+   * **Authorization Flow:** `default-provider-authorization-explicit-consent` (this shows the "Allow Access" screen) or `default-provider-authorization-implicit-consent` (skips the prompt, smoother for users).
+   * **Client Type:** `Public` (since we are using a SPA/React frontend).
+   * **Client ID:** `omniorder-web`
+   * **Redirect URIs:**
+     ```text
+     http://.*\.localhost/.*
+     ```
+     * *Critial Note:* Because OmniOrder uses dynamic subdomains (`pizza.localhost`, `burger.localhost`), we cannot list every single URL. We use a **Regular Expression** to allow any subdomain.
+6. Click **Finish**.
+
+---
+
+## 3. Create the Application
+
+The Application acts as the container for the Provider and defines access policies.
+
+1. Go to **Applications** -> **Applications** in the sidebar.
+2. Click **Create**.
+3. Fill in the form:
+   * **Name:** `OmniOrder`
+   * **Slug:** `omniorder`
+   * **Provider:** Select `OmniOrder Provider` (created in step 2).
+4. Click **Create**.
+
+---
+
+## 4. Verification
+
+To ensure the setup is correct, we need to verify the **OpenID Configuration URL** and **JWKS (JSON Web Key Set)** endpoint. The Backend API uses these to validate tokens without needing a shared secret.
+
+1. Go back to **Applications** -> **Providers**.
+2. Click on `OmniOrder Provider`.
+3. Look for the **Provider Metadata** section.
+4. Verify the **JWKS URL**. It should look like:
+   `http://auth.localhost/application/o/omniorder/jwks/`
+
+*Note for Developers:* Inside the Docker network (Back-channel communication), the API will access this via the internal container name: `http://authentik-server:9000/application/o/omniorder/jwks/`.
+
+---
+
+## 5. (Advanced) Scope Mapping for Tenants
+
+*Phase 2 Requirement.*
+
+To pass the "Tenant Schema" (e.g., `tenant_pizzahut`) inside the JWT, we will need a Custom Scope.
+
+1. Go to **Customization** -> **Property Mappings**.
+2. Create **Scope Mapping**.
+3. **Name:** `tenant-scope`
+4. **Scope Name:** `tenant`
+5. **Expression:**
+
+   ```python
+   # Logic to determine tenant based on user groups or attributes
+   # For MVP, we might return a list of accessible schemas
+   return {
+       "tenant_schema": request.user.attributes.get("tenant_schema", "public")
+   }
+  ```
+
+6. Go back to the **Provider**, edit it, and add `tenant-scope` to the **Selected Scopes** list.

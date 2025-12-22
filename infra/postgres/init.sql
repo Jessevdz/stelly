@@ -8,3 +8,6 @@ CREATE TABLE IF NOT EXISTS public.tenants (
     domain VARCHAR(255) UNIQUE NOT NULL,
     theme_config JSONB DEFAULT '{}'
 );
+
+-- Create separate database for Authentik Identity Provider
+CREATE DATABASE authentik;
