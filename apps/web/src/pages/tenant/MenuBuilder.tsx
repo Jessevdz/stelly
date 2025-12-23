@@ -71,13 +71,11 @@ export function MenuBuilder() {
         });
 
         if (!res.ok) {
-            // NEW: Try to parse the error detail from FastAPI
             try {
                 const errData = await res.json();
                 console.error("API Validation Error:", errData);
                 throw new Error(JSON.stringify(errData.detail || errData));
             } catch (e) {
-                // If parsing fails, fall back to generic
                 throw new Error(`API Failed: ${res.statusText}`);
             }
         }
@@ -99,6 +97,12 @@ export function MenuBuilder() {
     };
 
     const handleDeleteCategory = async (id: string) => {
+        // Prevent deleting the last category in demo mode
+        if (categories.length <= 1) {
+            alert("Demo Safety Guard: You cannot delete the last category. Please add another category before removing this one.");
+            return;
+        }
+
         if (!confirm("Delete this category? All items inside it will also be deleted.")) return;
         try {
             await apiCall(`/categories/${id}`, 'DELETE');
@@ -152,6 +156,16 @@ export function MenuBuilder() {
     };
 
     const handleDeleteItem = async (id: string) => {
+        // Prevent emptying a category completely
+        const itemToDelete = items.find(i => i.id === id);
+        if (itemToDelete) {
+            const catItems = items.filter(i => i.category_id === itemToDelete.category_id);
+            if (catItems.length <= 1) {
+                alert("Demo Safety Guard: Please leave at least one item in this category for visual structure.");
+                return;
+            }
+        }
+
         if (!confirm("Are you sure you want to delete this item?")) return;
         try {
             await apiCall(`/items/${id}`, 'DELETE');
@@ -180,8 +194,6 @@ export function MenuBuilder() {
         const itemB = catItems[swapIndex];
 
         // 2. CRITICAL: Handle "Collision/Tie" Scenario
-        // If the DB has bad data (e.g. both are Rank 0), swapping achieves nothing.
-        // In that specific edge case, we must enforce a sequence.
         const rankA = itemA.rank ?? 0;
         const rankB = itemB.rank ?? 0;
 
@@ -189,7 +201,6 @@ export function MenuBuilder() {
 
         if (rankA === rankB) {
             // Data is dirty (collision). Enforce standard spacing.
-            // We give the item moving UP the lower rank number.
             if (direction === 'up') {
                 newRankA = swapIndex; // e.g. 0
                 newRankB = currentIndex; // e.g. 1
@@ -212,8 +223,6 @@ export function MenuBuilder() {
         setItems(updatedItems);
 
         // 4. API Call
-        // We send only the two changed items to the server.
-        // This minimizes the "blast radius" of the write operation.
         const payload = [
             { id: itemA.id!, rank: newRankA },
             { id: itemB.id!, rank: newRankB }

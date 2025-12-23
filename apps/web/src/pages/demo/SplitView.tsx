@@ -121,10 +121,15 @@ export function SplitView() {
                     <CartProvider>
                         <ThemeWidget currentPreset={activeConfig.preset} onPresetChange={updateTheme} />
                         <OrderStatusBanner />
+
+                        {/* Pass activeConfig to the Outlet context for routes that use it */}
                         <Outlet context={{ config: activeConfig }} />
+
                         <div className="pb-24">
-                            <MenuPage />
+                            {/* Explicitly pass config prop for the direct render to ensure styling applies */}
+                            <MenuPage config={activeConfig} />
                         </div>
+
                         <CartFloatingButton />
                         <CartDrawer />
                     </CartProvider>

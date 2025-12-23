@@ -5,6 +5,8 @@ import { HeroSection } from "../../components/store/HeroSection";
 import { CategoryNav } from "../../components/store/CategoryNav";
 import { MenuGridItem } from "../../components/store/MenuGridItem";
 import { ItemDetailModal } from "../../components/store/ItemDetailModal";
+import { Zap } from "lucide-react";
+import { BrandButton } from "../common/BrandButton";
 
 // Types
 interface MenuItem {
@@ -15,6 +17,7 @@ interface MenuItem {
     image_url?: string;
     is_available: boolean;
     category_id: string;
+    modifier_groups?: any[];
 }
 
 interface Category {
@@ -23,22 +26,20 @@ interface Category {
     items: MenuItem[];
 }
 
-export function MenuPage() {
+interface MenuPageProps {
+    config?: any;
+}
+
+export function MenuPage({ config: propConfig }: MenuPageProps) {
     // 1. Context & State
-    // Try to get context from Outlet, but don't crash if it's missing (fallback logic handled in SplitView via prop passing if needed, or CartProvider wrapping)
     const outletCtx = useOutletContext<any>();
+    // Priority: Prop Config > Outlet Config > Default
+    const config = propConfig || outletCtx?.config || { preset: 'mono-luxe', name: 'Loading...' };
 
-    // In SplitView, we manually passed context={{ config }} via Outlet, so this works.
-    // However, if we render <MenuPage /> directly without Outlet (like in the SplitView JSX below the outlet), 
-    // we should rely on a simpler prop or context.
-
-    // For MVP simplicity in SplitView, we are actually rendering the Outlet AND the MenuPage explicitly.
-    // Let's rely on the Outlet context which IS provided in SplitView.
-    const config = outletCtx?.config || { preset: 'mono-luxe', name: 'Loading...' };
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState<string>('');
-    const { addToCart } = useCart();
+    const { addToCart, toggleDrawer } = useCart();
 
     // Modal State
     const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -75,17 +76,12 @@ export function MenuPage() {
             (entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
-                        // ID format is "cat-UUID", strip prefix to get raw ID
                         const id = entry.target.id.replace('cat-', '');
                         setActiveCategory(id);
                     }
                 });
             },
-            {
-                // Trigger when section hits the top area of viewport
-                rootMargin: '-100px 0px -60% 0px',
-                threshold: 0
-            }
+            { rootMargin: '-100px 0px -60% 0px', threshold: 0 }
         );
 
         categories.forEach((cat) => {
@@ -103,25 +99,49 @@ export function MenuPage() {
     };
 
     const handleConfirmAdd = (item: any, qty: number, notes: string) => {
-        // MVP Compatibility: Loop to add quantity since Context assumes single item add
-        // In a production refactor, update `addToCart` to accept { ...item, qty, notes }
         for (let i = 0; i < qty; i++) {
             addToCart(item);
         }
-        // Note: 'notes' would be sent to API in checkout payload in full version
+    };
+
+    // QUICK BUNDLE LOGIC ---
+    const handleQuickDemoOrder = () => {
+        if (categories.length === 0) return;
+
+        // Flatten all items
+        const allItems = categories.flatMap(c => c.items);
+
+        // Strategy: Try to find a Main, a Side, and a Drink
+        // Heuristic: Search by name keywords, fallback to first item of first 3 categories
+        const findItem = (keywords: string[]) =>
+            allItems.find(i => keywords.some(k => i.name.toLowerCase().includes(k)));
+
+        const burgerOrMain = findItem(['burger', 'pizza', 'whopper', 'steak']) || allItems[0];
+        const fryOrSide = findItem(['fry', 'fries', 'salad', 'wings']) || allItems[1] || allItems[0];
+        const drink = findItem(['shake', 'coke', 'soda', 'water']) || allItems[2] || allItems[0];
+
+        // Add to cart (filter duplicates if menu is small)
+        const bundle = new Set([burgerOrMain, fryOrSide, drink]);
+
+        bundle.forEach(item => {
+            if (item) addToCart({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                image_url: item.image_url,
+                modifiers: [], // Quick add skips modifiers
+                notes: 'Demo Quick Add'
+            });
+        });
+
+        // Open drawer to show result
+        toggleDrawer(true);
     };
 
     // 5. Loading State
     if (loading) return (
         <div className="min-h-screen bg-app animate-pulse">
             <div className="h-[45vh] min-h-[350px] w-full bg-gray-300" />
-            <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200">
-                <div className="max-w-screen-lg mx-auto px-4 py-4 flex gap-3 overflow-hidden">
-                    {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="h-9 w-24 bg-gray-300 rounded-full shrink-0" />
-                    ))}
-                </div>
-            </div>
             <div className="max-w-screen-xl mx-auto px-4 py-8 space-y-12">
                 {[1, 2].map((section) => (
                     <div key={section} className="space-y-6">
@@ -140,33 +160,40 @@ export function MenuPage() {
     // 6. Main Render
     return (
         <>
-            {/* Dynamic Hero based on Preset (Centered vs Split vs Banner) */}
             <HeroSection name={config.name} preset={presetName} />
 
-            {/* Sticky Navigation */}
             <CategoryNav categories={categories} activeCategory={activeCategory} />
 
-            {/* Menu Grid Canvas */}
+            {/* Quick Add Banner for Demo */}
+            <div className="max-w-screen-xl mx-auto px-4 mt-6">
+                <button
+                    onClick={handleQuickDemoOrder}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-lg shadow-md flex items-center justify-center gap-2 hover:shadow-lg hover:scale-[1.01] transition-all group"
+                >
+                    <div className="bg-white/20 p-1 rounded-full group-hover:rotate-12 transition-transform">
+                        <Zap size={16} fill="currentColor" />
+                    </div>
+                    <span className="font-bold text-sm">Demo Shortcut: Add "Full Meal" Bundle Instantly</span>
+                </button>
+            </div>
+
             <div id="cat-list" className="max-w-screen-xl mx-auto px-4 py-8 md:px-8 scroll-mt-24">
                 {categories.map((cat) => {
                     if (cat.items.length === 0) return null;
 
                     return (
                         <div key={cat.id} id={`cat-${cat.id}`} className="mb-16 scroll-mt-32">
-                            {/* Category Header */}
                             <h2 className="text-3xl font-bold font-heading mb-6 text-text-main case-brand flex items-center gap-4">
                                 {cat.name}
-                                {/* Decorative separator line */}
                                 <span className="h-px flex-1 bg-border/60"></span>
                             </h2>
 
-                            {/* Responsive Grid Layout */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                                 {cat.items.map((item) => (
                                     <MenuGridItem
                                         key={item.id}
                                         item={item}
-                                        onAdd={handleItemClick} // Triggers Modal
+                                        onAdd={handleItemClick}
                                         preset={presetName}
                                     />
                                 ))}
@@ -182,11 +209,11 @@ export function MenuPage() {
                 )}
             </div>
 
-            {/* Themed Item Details Modal */}
             <ItemDetailModal
                 isOpen={isModalOpen}
                 item={selectedItem}
                 onClose={() => setIsModalOpen(false)}
+                // @ts-ignore
                 onAddToCart={handleConfirmAdd}
                 preset={presetName}
             />

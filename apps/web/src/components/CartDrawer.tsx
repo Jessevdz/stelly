@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { BrandButton } from './common/BrandButton';
 import { X, ShoppingBag, Trash2, User, Hash } from 'lucide-react';
@@ -13,6 +13,17 @@ export function CartDrawer() {
     const [customerName, setCustomerName] = useState('');
     const [tableNumber, setTableNumber] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // PRE-FILL FOR DEMO
+    useEffect(() => {
+        if (isDrawerOpen && items.length > 0 && !customerName) {
+            // Check if we are in demo environment
+            const isDemo = window.location.hostname.includes('demo') || window.location.hostname.includes('localhost');
+            if (isDemo) {
+                setCustomerName("Demo Guest");
+            }
+        }
+    }, [isDrawerOpen, items.length]);
 
     const handleCheckout = async () => {
         if (items.length === 0) return;
@@ -42,20 +53,13 @@ export function CartDrawer() {
 
             if (res.ok) {
                 const data = await res.json();
-
-                // 1. Set the Active Order globally to trigger the Status Banner
                 setActiveOrderId(data.id);
-
-                // 2. Reset Local State
                 clearCart();
-                setCustomerName('');
+                setCustomerName(''); // Reset for next order
                 setTableNumber('');
-
-                // 3. Close the drawer (User will see the status banner now)
                 toggleDrawer(false);
             } else {
                 const err = await res.json();
-                // Handle specific rate limit error
                 if (res.status === 429) {
                     alert("Please wait a moment before placing another order.");
                 } else {
@@ -142,7 +146,6 @@ export function CartDrawer() {
                     )}
                 </div>
 
-                {/* Fulfillment Details Form */}
                 {items.length > 0 && (
                     <div className="p-4 bg-gray-50 border-t space-y-3">
                         <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide">Guest Details</h3>
