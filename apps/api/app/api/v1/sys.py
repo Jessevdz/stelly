@@ -240,13 +240,17 @@ def reset_demo_data(
         tenant = db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
         
         if tenant:
+            # Resets to a clean state
             tenant.theme_config = {
                 "preset": "mono-luxe",
                 "primary_color": "#000000",
                 "font_family": "Inter",
                 "address": "101 Demo Lane, Tech City",
+                "phone": "(555) 019-2834",
+                "email": "demo@omniorder.localhost",
                 "operating_hours": [
-                    {"label": "Mon-Sun", "time": "24 Hours"}
+                    {"label": "Mon-Fri", "time": "11:00 AM - 10:00 PM"},
+                    {"label": "Weekends", "time": "10:00 AM - 11:00 PM"}
                 ]
             }
             db.commit()
