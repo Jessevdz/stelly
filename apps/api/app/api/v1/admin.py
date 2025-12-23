@@ -22,7 +22,7 @@ from app.schemas.menu import (
     MenuItemReorder,
 )
 from app.api.v1.deps import get_current_user
-from app.core.config import settings
+from app.core.config import settings  # Import settings for DEMO_DOMAIN check
 from pydantic import BaseModel
 from sqlalchemy import text
 
@@ -33,16 +33,17 @@ router = APIRouter()
 def restore_tenant_context(db: Session, request: Request):
     """
     Re-applies the search_path after a commit resets the transaction.
-    Ensures consistency between deps.py resolution and post-commit state.
     """
     host = request.headers.get("host", "").split(":")[0]
 
-    # This ensures we stick to 'tenant_demo' even if the public.tenants record lookup is flaky.
+    # [CRITICAL FIX] Explicitly handle Demo Mode.
+    # If we are on the demo domain, force the demo schema immediately.
+    # This bypasses the need for a Tenant record to exist in 'public.tenants'.
     if host == settings.DEMO_DOMAIN:
         db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}, public"))
         return
 
-    # Standard Tenant Resolution
+    # Standard Tenant Logic
     db.execute(text("SET search_path TO public"))
     tenant = db.query(Tenant).filter(Tenant.domain == host).first()
     if tenant:
@@ -56,6 +57,7 @@ def restore_tenant_context(db: Session, request: Request):
 def list_categories(
     db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)
 ):
+    # Note: deps.py sets the initial search_path.
     return db.query(Category).order_by(Category.rank.asc()).all()
 
 
@@ -70,6 +72,7 @@ def create_category(
     db.add(cat)
 
     db.commit()
+    # Transaction closed. Re-apply context before refresh.
     restore_tenant_context(db, request)
     db.refresh(cat)
     return cat
@@ -263,14 +266,31 @@ def get_tenant_settings(
 ):
     host = request.headers.get("host", "").split(":")[0]
 
+    default_hours = [
+        {"label": "Mon - Fri", "time": "11:00 AM - 10:00 PM"},
+        {"label": "Sat - Sun", "time": "10:00 AM - 11:00 PM"},
+    ]
+
+    # Switch to public to read Tenant config
+    db.execute(text("SET search_path TO public"))
+
+    # [CRITICAL FIX] Demo Fallback
+    # If we are in Demo Mode, try to find the record. If missing (failed seed),
+    # return a mock config instead of 404ing the dashboard.
     if host == settings.DEMO_DOMAIN:
-        db.execute(text("SET search_path TO public"))
         tenant = (
             db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
         )
+        if not tenant:
+            # Revert to demo schema for safety
+            db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}, public"))
+            return ThemeConfigSchema(
+                preset="mono-luxe",
+                primary_color="#000000",
+                font_family="Inter",
+                operating_hours=default_hours,
+            )
     else:
-        # Switch to public schema to read the Tenant table
-        db.execute(text("SET search_path TO public"))
         tenant = db.query(Tenant).filter(Tenant.domain == host).first()
 
     if not tenant:
@@ -278,13 +298,11 @@ def get_tenant_settings(
 
     config = tenant.theme_config or {}
 
-    # Switch back (though this is end of request, good hygiene)
-    db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
-
-    default_hours = [
-        {"label": "Mon - Fri", "time": "11:00 AM - 10:00 PM"},
-        {"label": "Sat - Sun", "time": "10:00 AM - 11:00 PM"},
-    ]
+    # Restore context
+    if host == settings.DEMO_DOMAIN:
+        db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}, public"))
+    else:
+        db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
 
     return ThemeConfigSchema(
         preset=config.get("preset", "mono-luxe"),
@@ -308,6 +326,7 @@ def update_tenant_settings(
 
     db.execute(text("SET search_path TO public"))
 
+    # [FIX] Handle Demo Tenant Lookup
     if host == settings.DEMO_DOMAIN:
         tenant = (
             db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
@@ -334,6 +353,10 @@ def update_tenant_settings(
 
     db.commit()
     db.refresh(tenant)
-    db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
+
+    if host == settings.DEMO_DOMAIN:
+        db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}, public"))
+    else:
+        db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
 
     return payload
