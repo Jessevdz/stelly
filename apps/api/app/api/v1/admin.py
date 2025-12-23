@@ -22,6 +22,7 @@ from app.schemas.menu import (
     MenuItemReorder,
 )
 from app.api.v1.deps import get_current_user
+from app.core.config import settings
 from pydantic import BaseModel
 from sqlalchemy import text
 
@@ -32,12 +33,16 @@ router = APIRouter()
 def restore_tenant_context(db: Session, request: Request):
     """
     Re-applies the search_path after a commit resets the transaction.
+    Ensures consistency between deps.py resolution and post-commit state.
     """
     host = request.headers.get("host", "").split(":")[0]
-    # We query public.tenants explicitly to be safe
-    # Note: In strict OIDC/Deps flow, the db session might already be correctly set,
-    # but SQLAlchemy commits reset the transaction state, often clearing search_path
-    # if using connection pooling that resets.
+
+    # This ensures we stick to 'tenant_demo' even if the public.tenants record lookup is flaky.
+    if host == settings.DEMO_DOMAIN:
+        db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}, public"))
+        return
+
+    # Standard Tenant Resolution
     db.execute(text("SET search_path TO public"))
     tenant = db.query(Tenant).filter(Tenant.domain == host).first()
     if tenant:
@@ -258,9 +263,15 @@ def get_tenant_settings(
 ):
     host = request.headers.get("host", "").split(":")[0]
 
-    # Switch to public schema to read the Tenant table
-    db.execute(text("SET search_path TO public"))
-    tenant = db.query(Tenant).filter(Tenant.domain == host).first()
+    if host == settings.DEMO_DOMAIN:
+        db.execute(text("SET search_path TO public"))
+        tenant = (
+            db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
+        )
+    else:
+        # Switch to public schema to read the Tenant table
+        db.execute(text("SET search_path TO public"))
+        tenant = db.query(Tenant).filter(Tenant.domain == host).first()
 
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant config not found")
@@ -297,7 +308,13 @@ def update_tenant_settings(
 
     db.execute(text("SET search_path TO public"))
 
-    tenant = db.query(Tenant).filter(Tenant.domain == host).first()
+    if host == settings.DEMO_DOMAIN:
+        tenant = (
+            db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
+        )
+    else:
+        tenant = db.query(Tenant).filter(Tenant.domain == host).first()
+
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
 
