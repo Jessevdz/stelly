@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTenantConfig } from '../hooks/useTenantConfig';
 import { LayoutGrid, Utensils, Users, LogOut, Store, Settings } from 'lucide-react';
@@ -7,6 +7,11 @@ export const TenantLayout = () => {
     const { logout } = useAuth();
     const { config } = useTenantConfig();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Determine the base path based on current context
+    // If we are inside the demo shell, keep the /demo prefix
+    const basePath = location.pathname.startsWith('/demo') ? '/demo/admin' : '/admin';
 
     const handleLogout = () => {
         logout();
@@ -30,28 +35,28 @@ export const TenantLayout = () => {
 
                 <nav className="flex-1 px-3 space-y-1">
                     <NavLink
-                        to="/admin/dashboard"
+                        to={`${basePath}/dashboard`}
                         className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-md transition-all font-medium ${isActive ? 'bg-gray-100 text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                     >
                         <LayoutGrid size={18} />
                         Overview
                     </NavLink>
                     <NavLink
-                        to="/admin/menu"
+                        to={`${basePath}/menu`}
                         className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-md transition-all font-medium ${isActive ? 'bg-gray-100 text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                     >
                         <Utensils size={18} />
                         Menu Builder
                     </NavLink>
                     <NavLink
-                        to="/admin/staff"
+                        to={`${basePath}/staff`}
                         className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-md transition-all font-medium ${isActive ? 'bg-gray-100 text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                     >
                         <Users size={18} />
                         Staff Accounts
                     </NavLink>
                     <NavLink
-                        to="/admin/settings"
+                        to={`${basePath}/settings`}
                         className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-md transition-all font-medium ${isActive ? 'bg-gray-100 text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                     >
                         <Settings size={18} />

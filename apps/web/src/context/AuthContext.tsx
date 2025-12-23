@@ -24,9 +24,14 @@ export const useAuth = () => {
 
     // Check if we are in the demo environment and have a token stored
     const demoToken = typeof window !== 'undefined' ? sessionStorage.getItem('demo_token') : null;
-    const isDemoRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/demo');
 
-    if (isDemoRoute && demoToken) {
+    // UPDATED CHECK: Trust the domain OR the path
+    const isDemoContext = typeof window !== 'undefined' && (
+        window.location.pathname.startsWith('/demo') ||
+        window.location.hostname.startsWith('demo.')
+    );
+
+    if (isDemoContext && demoToken) {
         return {
             token: demoToken,
             isAuthenticated: true,
@@ -42,7 +47,7 @@ export const useAuth = () => {
             login: () => { }, // No-op
             logout: () => {
                 sessionStorage.removeItem('demo_token');
-                window.location.reload();
+                window.location.href = '/demo/split';
             },
             ...auth // fallback properties
         };
