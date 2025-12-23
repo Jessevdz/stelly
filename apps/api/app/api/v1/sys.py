@@ -8,8 +8,7 @@ from app.db.models import Tenant, Order
 from app.schemas.provision import TenantCreateRequest, TenantResponse
 from app.api.v1.deps import get_current_user
 from app.core.config import settings
-from app.core.security importRPPS_SECRET_KEY, create_access_token # Correction: security.py import
-from app.core.security import create_access_token # Correct import
+from app.core.security import create_access_token
 
 router = APIRouter()
 
@@ -175,6 +174,7 @@ def provision_tenant(
 
 # --- DEMO MODE ENDPOINTS ---
 
+
 @router.post("/demo-login")
 def demo_login(payload: dict = Body(...)):
     """
@@ -188,24 +188,23 @@ def demo_login(payload: dict = Body(...)):
     # Create a Magic Token
     # We assign "demo_admin" as the subject, which deps.py will recognize.
     token = create_access_token(
-        subject="demo_admin", 
+        subject="demo_admin",
     )
-    
+
     return {
         "access_token": token,
         "token_type": "bearer",
         "user": {
             "name": "Demo Administrator",
             "email": "demo@omniorder.localhost",
-            "role": "admin"
-        }
+            "role": "admin",
+        },
     }
 
 
 @router.post("/reset-demo")
 def reset_demo_data(
-    current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     Resets the Demo Tenant to its initial state.
@@ -220,15 +219,15 @@ def reset_demo_data(
     try:
         # Switch to demo schema
         db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}"))
-        
+
         # Truncate orders
         db.execute(text("TRUNCATE TABLE orders CASCADE"))
-        
+
         # Reset Ticket Numbers sequence (optional but nice)
         # Assuming ticket_number is not an auto-increment identity but handled in code,
         # checking Order model... it is just an Integer.
         # But if we had a serial, we'd reset it here.
-        
+
         db.commit()
     except Exception as e:
         db.rollback()
@@ -237,8 +236,10 @@ def reset_demo_data(
     # 3. Reset Branding in Public Schema
     try:
         db.execute(text("SET search_path TO public"))
-        tenant = db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
-        
+        tenant = (
+            db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
+        )
+
         if tenant:
             # Resets to a clean state
             tenant.theme_config = {
@@ -250,8 +251,8 @@ def reset_demo_data(
                 "email": "demo@omniorder.localhost",
                 "operating_hours": [
                     {"label": "Mon-Fri", "time": "11:00 AM - 10:00 PM"},
-                    {"label": "Weekends", "time": "10:00 AM - 11:00 PM"}
-                ]
+                    {"label": "Weekends", "time": "10:00 AM - 11:00 PM"},
+                ],
             }
             db.commit()
     except Exception as e:
