@@ -185,6 +185,7 @@ async def update_order_status(
     Update order status and sync via WebSocket.
     """
     tenant = get_tenant_by_host(request, db)
+    # 1. Initial Context Set
     db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
 
     order = db.query(Order).filter(Order.id == order_id).first()
@@ -194,7 +195,13 @@ async def update_order_status(
     order.status = payload.status
     db.commit()
 
+    # Re-apply schema context because commit() resets the transaction state.
+    # Without this, the subsequent implicit refresh looks in 'public'.
+    db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
+    db.refresh(order)
+
     # Broadcast status change to all connected KDS screens
+    # Accessing order.id or order.status here is now safe
     await manager.broadcast_to_tenant(
         tenant.schema_name,
         {
