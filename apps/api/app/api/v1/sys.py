@@ -1,13 +1,15 @@
 import uuid
 import re
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.db.session import get_db
-from app.db.models import Tenant
+from app.db.models import Tenant, Order
 from app.schemas.provision import TenantCreateRequest, TenantResponse
 from app.api.v1.deps import get_current_user
 from app.core.config import settings
+from app.core.security importRPPS_SECRET_KEY, create_access_token # Correction: security.py import
+from app.core.security import create_access_token # Correct import
 
 router = APIRouter()
 
@@ -169,3 +171,87 @@ def provision_tenant(
         schema_name=schema_name,
         message=f"Tenant created. Login via SSO.",
     )
+
+
+# --- DEMO MODE ENDPOINTS ---
+
+@router.post("/demo-login")
+def demo_login(payload: dict = Body(...)):
+    """
+    Magic Login endpoint for the interactive demo.
+    Validates a shared access code and returns a locally signed JWT.
+    """
+    code = payload.get("code")
+    if code != settings.DEMO_ACCESS_CODE:
+        raise HTTPException(status_code=401, detail="Invalid Access Code")
+
+    # Create a Magic Token
+    # We assign "demo_admin" as the subject, which deps.py will recognize.
+    token = create_access_token(
+        subject="demo_admin", 
+    )
+    
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "name": "Demo Administrator",
+            "email": "demo@omniorder.localhost",
+            "role": "admin"
+        }
+    }
+
+
+@router.post("/reset-demo")
+def reset_demo_data(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Resets the Demo Tenant to its initial state.
+    1. Truncates Orders.
+    2. Resets Branding to Default.
+    """
+    # 1. Authorization: Must be logged in as demo admin
+    if current_user.get("id") != "demo_admin":
+        raise HTTPException(status_code=403, detail="Only Demo Admin can reset data.")
+
+    # 2. Reset Orders in the Demo Schema
+    try:
+        # Switch to demo schema
+        db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}"))
+        
+        # Truncate orders
+        db.execute(text("TRUNCATE TABLE orders CASCADE"))
+        
+        # Reset Ticket Numbers sequence (optional but nice)
+        # Assuming ticket_number is not an auto-increment identity but handled in code,
+        # checking Order model... it is just an Integer.
+        # But if we had a serial, we'd reset it here.
+        
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to clear orders: {e}")
+
+    # 3. Reset Branding in Public Schema
+    try:
+        db.execute(text("SET search_path TO public"))
+        tenant = db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
+        
+        if tenant:
+            tenant.theme_config = {
+                "preset": "mono-luxe",
+                "primary_color": "#000000",
+                "font_family": "Inter",
+                "address": "101 Demo Lane, Tech City",
+                "operating_hours": [
+                    {"label": "Mon-Sun", "time": "24 Hours"}
+                ]
+            }
+            db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to reset theme: {e}")
+
+    return {"message": "Demo environment reset successfully."}

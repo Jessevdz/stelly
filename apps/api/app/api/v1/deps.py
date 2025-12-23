@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from jose import jwt
+from jose import jwt, JWTError
 from typing import Dict, Any
 import httpx
 from app.db.session import get_db
@@ -27,6 +27,8 @@ async def get_jwks() -> Dict[str, Any]:
             return resp.json()
     except Exception as e:
         print(f"JWKS Fetch Error: {e}")
+        # In demo mode development where auth server might be down, this shouldn't crash the app
+        # unless necessary. But for JWT validation it is critical.
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Could not verify identity provider availability.",
@@ -37,46 +39,80 @@ async def get_current_user(
     request: Request, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    1. Verify JWT Signature against IdP Public Keys.
-    2. Extract Host Header.
-    3. Resolve Tenant from DB (Public Schema).
+    1. Try verifying JWT with Local Secret (Magic Token for Demo).
+    2. If invalid, verify JWT Signature against IdP Public Keys (Standard SSO).
+    3. Extract Host Header & Resolve Tenant.
     4. Set Database Search Path for the Request.
     """
 
-    # --- 1. Validation ---
-    jwks = await get_jwks()
+    payload = None
+    auth_method = "oidc"
 
+    # --- 1. Validation Strategy ---
+
+    # Strategy A: Check if it is a Magic Token (Signed with local SECRET_KEY)
     try:
-        payload = jwt.decode(
-            token,
-            jwks,
-            algorithms=[settings.ALGORITHM],
-            audience=settings.OIDC_AUDIENCE,
-            options={"verify_at_hash": False},
-        )
-    except Exception as e:
-        print(f"Token Validation Error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Authentication Token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        # Simple decode check first
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        if payload.get("type") == "magic":
+            auth_method = "magic"
+    except JWTError:
+        # Not a magic token, fall through to OIDC
+        pass
+
+    # Strategy B: OIDC JWKS Validation
+    if not payload:
+        jwks = await get_jwks()
+        try:
+            payload = jwt.decode(
+                token,
+                jwks,
+                algorithms=[settings.ALGORITHM],
+                audience=settings.OIDC_AUDIENCE,
+                options={"verify_at_hash": False},
+            )
+        except Exception as e:
+            print(f"Token Validation Error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Authentication Token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
     # --- 2. Tenant Context Resolution ---
     host = request.headers.get("host", "").split(":")[0]
 
-    # We query the public schema for the tenant config
-    # We explicitly set search_path to public first to ensure we can read the tenants table
-    db.execute(text("SET search_path TO public"))
-    tenant = db.query(Tenant).filter(Tenant.domain == host).first()
+    # Initialize Tenant/Schema vars
+    tenant = None
+    target_schema = "public"
+
+    # A. Check for DEMO Override
+    if host == settings.DEMO_DOMAIN:
+        # Force the Demo Schema regardless of what DB says for this domain
+        target_schema = settings.DEMO_SCHEMA
+        # We manually fetch the demo tenant record just for context if needed
+        db.execute(text("SET search_path TO public"))
+        tenant = (
+            db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
+        )
+
+    else:
+        # B. Standard Lookup
+        db.execute(text("SET search_path TO public"))
+        tenant = db.query(Tenant).filter(Tenant.domain == host).first()
+        if tenant:
+            target_schema = tenant.schema_name
 
     # --- 3. Authorization & Context Switch ---
 
     # Case A: Super Admin Console
     if host == "admin.omniorder.localhost":
-        # Ensure the user has super admin privileges (via email check for MVP)
+        # Ensure the user has super admin privileges
+        # If magic token, we trust the sub claim if it's "demo_admin"
+        is_demo_admin = auth_method == "magic" and payload.get("sub") == "demo_admin"
+
         email = payload.get("email")
-        if email not in settings.SUPER_ADMINS:
+        if not is_demo_admin and email not in settings.SUPER_ADMINS:
             raise HTTPException(
                 status_code=403, detail="Not authorized for Platform Admin"
             )
@@ -85,12 +121,9 @@ async def get_current_user(
         db.execute(text("SET search_path TO public"))
         current_schema = "public"
 
-    # Case B: Tenant Context (e.g. pizza.localhost)
-    elif tenant:
-        # For MVP: We blindly allow any valid user to access the tenant if they have a token.
-        # In Prod: We would check `payload.get("groups")` to see if they belong to `tenant_pizzahut_admins`
-
-        target_schema = tenant.schema_name
+    # Case B: Tenant Context
+    elif tenant or target_schema == settings.DEMO_SCHEMA:
+        # Apply the schema switch
         db.execute(text(f"SET search_path TO {target_schema}, public"))
         current_schema = target_schema
 
@@ -107,4 +140,5 @@ async def get_current_user(
         "name": payload.get("name"),
         "schema": current_schema,
         "is_superuser": host == "admin.omniorder.localhost",
+        "auth_method": auth_method,
     }

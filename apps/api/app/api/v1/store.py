@@ -13,6 +13,7 @@ from app.db.models import (
 from app.schemas.menu import CategoryWithItems
 from app.core.socket import manager
 from app.core.ratelimit import RateLimiter
+from app.core.config import settings
 from pydantic import BaseModel
 from typing import List, Literal, Optional
 from datetime import datetime
@@ -89,6 +90,20 @@ class OrderStatusUpdate(BaseModel):
 # --- Helpers ---
 def get_tenant_by_host(request: Request, db: Session) -> Tenant:
     host = request.headers.get("host", "").split(":")[0]
+
+    # DEMO OVERRIDE LOGIC
+    if host == settings.DEMO_DOMAIN:
+        # We explicitly fetch the demo tenant definition
+        # Ensure we are in public to read tenants table
+        db.execute(text("SET search_path TO public"))
+        tenant = (
+            db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
+        )
+        if not tenant:
+            raise HTTPException(status_code=500, detail="Demo tenant not seeded.")
+        return tenant
+
+    # Standard Logic
     tenant = db.query(Tenant).filter(Tenant.domain == host).first()
     if not tenant:
         raise HTTPException(status_code=404, detail=f"No tenant found for: {host}")

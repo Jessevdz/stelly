@@ -4,10 +4,66 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.db.models import Tenant, Category, MenuItem, ModifierGroup, ModifierOption
 from app.db.base import Base
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 SEEDS = [
+    {
+        "name": "Omni Demo Bistro",
+        "domain": settings.DEMO_DOMAIN,
+        "schema_name": settings.DEMO_SCHEMA,
+        "theme_config": {
+            "preset": "mono-luxe",
+            "primary_color": "#000000",
+            "font_family": "Inter",
+            "address": "101 Demo Lane, Tech City",
+            "operating_hours": [{"label": "Mon-Sun", "time": "24 Hours"}],
+        },
+        "categories": ["Chef's Specials", "Appetizers", "Cocktails"],
+        "items": [
+            {
+                "name": "Wagyu Smash Burger",
+                "desc": "A5 Wagyu blend, brioche bun, aged cheddar, truffle aioli.",
+                "price": 1800,
+                "img": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80",
+                "cat_idx": 0,
+                "modifiers": [
+                    {
+                        "name": "Doneness",
+                        "min": 1,
+                        "max": 1,
+                        "opts": [
+                            {"name": "Medium Rare", "price": 0},
+                            {"name": "Medium", "price": 0},
+                            {"name": "Well Done", "price": 0},
+                        ],
+                    }
+                ],
+            },
+            {
+                "name": "Lobster Mac & Cheese",
+                "desc": "Maine lobster, gruyere, herb crumb.",
+                "price": 2400,
+                "img": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80",
+                "cat_idx": 0,
+            },
+            {
+                "name": "Crispy Calamari",
+                "desc": "Served with spicy marinara and lemon wedge.",
+                "price": 1200,
+                "img": "https://images.unsplash.com/photo-1604909052743-94e838986d24?auto=format&fit=crop&w=800&q=80",
+                "cat_idx": 1,
+            },
+            {
+                "name": "Smoked Old Fashioned",
+                "desc": "Bourbon, bitters, orange peel, hickory smoke.",
+                "price": 1600,
+                "img": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
+                "cat_idx": 2,
+            },
+        ],
+    },
     {
         "name": "Pizza Hut",
         "domain": "pizza.localhost",

@@ -19,8 +19,18 @@ class Settings(BaseSettings):
     # Internal Docker URL to reach Authentik
     JWKS_URL: str = "http://authentik-server:9000/application/o/omniorder/jwks/"
     ALGORITHM: str = "RS256"
+
     # Super Admins (Emails authorized to provision tenants)
-    SUPER_ADMINS: List[str] = ["jesse_vdz@hotmail.com"]
+    SUPER_ADMINS: List[str] = ["jesse_vdz@hotmail.com", "admin@omniorder.localhost"]
+
+    # Security - Local (For Demo/Magic Tokens)
+    SECRET_KEY: str = "538422cb-34b7-48a8-8fcc-8c28b6bc21d3"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+
+    # Demo Mode Configuration
+    DEMO_DOMAIN: str = "demo.omniorder.localhost"
+    DEMO_ACCESS_CODE: str = "OMNI2025"
+    DEMO_SCHEMA: str = "tenant_demo"
 
     # Storage (MinIO/S3)
     S3_ENDPOINT: str = "http://minio:9000"  # Internal Docker URL

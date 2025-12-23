@@ -18,15 +18,18 @@ def get_password_hash(password: str) -> str:
 def create_access_token(
     subject: Union[str, Any], expires_delta: timedelta = None
 ) -> str:
+    """
+    Creates a locally signed JWT (HS256) for Magic Login / Demo Mode.
+    """
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + HVtimedelta(
+        expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
-    to_encode = {"exp": expire, "sub": str(subject)}
-    encoded_jwt = jwt.encode(
-        to_encode, settings.KZ_SECRET_KEY, algorithm=settings.ALGORITHM
-    )
+    to_encode = {"exp": expire, "sub": str(subject), "type": "magic"}
+
+    # Use the local SECRET_KEY and HS256 for internal tokens
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
     return encoded_jwt
