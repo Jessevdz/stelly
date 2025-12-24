@@ -3,12 +3,13 @@ import re
 from fastapi import APIRouter, HTTPException, Depends, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from app.db.session import get_db
-from app.db.models import Tenant, Order
+from app.db.session import get_db, engine
+from app.db.models import Tenant, Lead
 from app.schemas.provision import TenantCreateRequest, TenantResponse
 from app.api.v1.deps import get_current_user
 from app.core.config import settings
 from app.core.security import create_access_token
+from app.core.seed_internal import provision_tenant_internal, DEMO_TENANT_SEED
 
 router = APIRouter()
 
@@ -23,28 +24,21 @@ def provision_tenant(
     Provisions a new tenant.
     Protected: Only accessible by Super Admins via the Admin Portal.
     """
-
-    # 1. Authorization Check
-    # (Double check, though deps.py usually handles the context)
     if not current_user.get("is_superuser"):
-        # Just in case they hit this endpoint from a tenant domain
         if current_user.get("email") not in settings.SUPER_ADMINS:
             raise HTTPException(
                 status_code=403, detail="Only Super Admins can provision tenants."
             )
 
-    # 2. Clean & Check Domain
     clean_name = re.sub(r"[^a-zA-Z0-9]", "", payload.name.lower())
     schema_name = f"tenant_{clean_name}"
 
-    # Ensure we are in public schema for this check
     db.execute(text("SET search_path TO public"))
 
     existing = db.query(Tenant).filter(Tenant.domain == payload.domain).first()
     if existing:
         raise HTTPException(status_code=400, detail="Domain already taken")
 
-    # 3. Create Tenant Record
     new_tenant = Tenant(
         name=payload.name,
         domain=payload.domain,
@@ -63,7 +57,6 @@ def provision_tenant(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-    # 4. Create Schema (Raw SQL)
     try:
         db.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema_name}"))
         db.commit()
@@ -72,98 +65,19 @@ def provision_tenant(
         db.commit()
         raise HTTPException(status_code=500, detail=f"Failed to create schema: {e}")
 
-    # 5. Create Tables & Seed Data
-    from app.db.base import Base
-    from app.db.session import engine
-
-    tenant_tables = [
-        table for table in Base.metadata.sorted_tables if table.schema != "public"
-    ]
+    # Use the shared seeding logic
+    seed_data = {
+        "name": payload.name,
+        "domain": payload.domain,
+        "schema_name": schema_name,
+        "theme_config": new_tenant.theme_config,
+        "categories": DEMO_TENANT_SEED["categories"],  # Use default demo menu
+    }
 
     try:
-        with engine.begin() as connection:
-            # Switch Context
-            connection.execute(text(f"SET search_path TO {schema_name}"))
-
-            # Create Structure
-            Base.metadata.create_all(bind=connection, tables=tenant_tables)
-
-            # --- A. Create Default Admin ---
-            # NOTE: With OIDC, we don't strictly need a local users table for auth,
-            # but we might keep it for local profile data or role mapping.
-            # We skip creating a password-based user here since we use SSO.
-
-            # --- B. Seed Data (Menu with Ranks) ---
-            if payload.seed_data:
-                # 1. Generate IDs for Categories
-                cat_mains_id = uuid.uuid4()
-                cat_sides_id = uuid.uuid4()
-                cat_drinks_id = uuid.uuid4()
-
-                # 2. Insert Categories
-                connection.execute(
-                    text(
-                        "INSERT INTO categories (id, name, rank) VALUES (:id, :name, :rank)"
-                    ),
-                    [
-                        {"id": cat_mains_id, "name": "Signatures", "rank": 0},
-                        {"id": cat_sides_id, "name": "Sides", "rank": 1},
-                        {"id": cat_drinks_id, "name": "Drinks", "rank": 2},
-                    ],
-                )
-
-                # 3. Insert Menu Items
-                connection.execute(
-                    text(
-                        """
-                        INSERT INTO menu_items (id, name, description, price, image_url, is_available, category_id, rank)
-                        VALUES (:id, :name, :desc, :price, :img, :avail, :cat_id, :rank)
-                        """
-                    ),
-                    [
-                        {
-                            "id": uuid.uuid4(),
-                            "name": "The OmniBurger",
-                            "desc": "Double patty, brioche bun, secret sauce.",
-                            "price": 1400,
-                            "img": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=60",
-                            "avail": True,
-                            "cat_id": cat_mains_id,
-                            "rank": 0,
-                        },
-                        {
-                            "id": uuid.uuid4(),
-                            "name": "Truffle Fries",
-                            "desc": "Crispy fries topped with parmesan and truffle oil.",
-                            "price": 600,
-                            "img": "https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=500&q=60",
-                            "avail": True,
-                            "cat_id": cat_sides_id,
-                            "rank": 0,
-                        },
-                        {
-                            "id": uuid.uuid4(),
-                            "name": "Vanilla Shake",
-                            "desc": "Classic hand-spun milkshake.",
-                            "price": 500,
-                            "img": "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=500&q=60",
-                            "avail": True,
-                            "cat_id": cat_drinks_id,
-                            "rank": 0,
-                        },
-                    ],
-                )
-
+        provision_tenant_internal(db, seed_data, engine)
     except Exception as e:
-        # Rollback everything if provisioning fails
-        db.delete(new_tenant)
-        db.commit()
-        # Drop schema if it was created
-        db.execute(text(f"DROP SCHEMA IF EXISTS {schema_name} CASCADE"))
-        db.commit()
-        raise HTTPException(
-            status_code=500, detail=f"Table creation/seeding failed: {e}"
-        )
+        raise HTTPException(status_code=500, detail=f"Seeding failed: {e}")
 
     return TenantResponse(
         id=str(new_tenant.id),
@@ -172,33 +86,100 @@ def provision_tenant(
     )
 
 
-# --- DEMO MODE ENDPOINTS ---
+# --- DYNAMIC DEMO GENERATION ---
 
 
-@router.post("/demo-login")
-def demo_login(payload: dict = Body(...)):
+@router.post("/generate-demo-session")
+def generate_demo_session(payload: dict = Body(...), db: Session = Depends(get_db)):
     """
-    Magic Login endpoint for the interactive demo.
-    Validates a shared access code and returns a locally signed JWT.
+    Lead Generation & Sandbox Provisioning.
+    1. Saves lead details (Name, Email).
+    2. Creates a unique, ephemeral PostgreSQL schema.
+    3. Seeds it with the Demo Bistro data.
+    4. Returns a JWT locked to that schema.
     """
-    code = payload.get("code")
-    if code != settings.DEMO_ACCESS_CODE:
-        raise HTTPException(status_code=401, detail="Invalid Access Code")
+    name = payload.get("name")
+    email = payload.get("email")
 
-    # Create a Magic Token
-    # We assign "demo_admin" as the subject, which deps.py will recognize.
+    if not name or not email:
+        raise HTTPException(status_code=400, detail="Name and Email are required.")
+
+    # 1. Generate Schema Name
+    # We use a UUID hex to ensure uniqueness and difficult guessability
+    session_id = uuid.uuid4().hex[:12]
+    schema_name = f"demo_{session_id}"
+
+    # 2. Save Lead (Public Schema)
+    try:
+        db.execute(text("SET search_path TO public"))
+        lead = Lead(name=name, email=email, assigned_schema=schema_name)
+        db.add(lead)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Lead Save Error: {e}")
+        # Proceed anyway, don't block the demo if lead save fails (rare)
+
+    # 3. Create Schema & Seed
+    try:
+        # Create Schema
+        db.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema_name}"))
+        db.commit()
+
+        # Seed Data
+        # We reuse the High Fidelity Demo Seed, but override the schema name
+        session_seed = DEMO_TENANT_SEED.copy()
+        session_seed["schema_name"] = schema_name
+
+        # Run provisioning (create tables + insert data)
+        # We pass a flag to skip creating the public Tenant record inside the seeder
+        # because ephemeral sessions don't need a persistent public record for routing.
+        provision_tenant_internal(db, session_seed, engine, skip_public_record=True)
+
+        # Create a "fake" tenant config in the session so settings endpoints work.
+        # Since our /settings endpoints read from 'public.tenants', we DO need a record there
+        # for this specific ephemeral schema, otherwise settings changes won't persist or be readable.
+        # We insert a dummy Tenant record into the PUBLIC table for this ephemeral schema.
+
+        db.execute(text("SET search_path TO public"))
+        ephemeral_tenant = Tenant(
+            name=f"{name}'s Bistro",
+            domain=f"demo-{session_id}.local",  # Fake domain, not used for routing
+            schema_name=schema_name,
+            theme_config=DEMO_TENANT_SEED["theme_config"],
+        )
+        db.add(ephemeral_tenant)
+        db.commit()
+
+    except Exception as e:
+        print(f"Provisioning Error: {e}")
+        # Clean up if possible
+        try:
+            db.execute(text(f"DROP SCHEMA IF EXISTS {schema_name} CASCADE"))
+            db.commit()
+        except:
+            pass
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to prepare your environment. Please try again.",
+        )
+
+    # 4. Generate Token with Custom Claim
+    # This 'target_schema' claim tells deps.py to switch to this schema
     token = create_access_token(
-        subject="demo_admin",
+        subject="demo_user",
+        extra_claims={
+            "target_schema": schema_name,
+            "email": email,
+            "name": name,
+            "type": "magic",
+        },
     )
 
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": {
-            "name": "Demo Administrator",
-            "email": "demo@stelly.localhost",
-            "role": "admin",
-        },
+        "user": {"name": name, "email": email, "role": "admin", "schema": schema_name},
     }
 
 
@@ -207,56 +188,31 @@ def reset_demo_data(
     current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
-    Resets the Demo Tenant to its initial state.
-    1. Truncates Orders.
-    2. Resets Branding to Default.
+    Resets the current user's specific demo environment.
     """
-    # 1. Authorization: Must be logged in as demo admin
-    if current_user.get("id") != "demo_admin":
-        raise HTTPException(status_code=403, detail="Only Demo Admin can reset data.")
+    schema = current_user.get("schema")
 
-    # 2. Reset Orders in the Demo Schema
+    # Safety check: ensure we are only resetting a demo schema
+    if not schema or not schema.startswith("demo_"):
+        raise HTTPException(status_code=403, detail="Cannot reset this environment.")
+
     try:
-        # Switch to demo schema
-        db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}"))
-
-        # Truncate orders
+        db.execute(text(f"SET search_path TO {schema}"))
         db.execute(text("TRUNCATE TABLE orders CASCADE"))
-
-        # Reset Ticket Numbers sequence (optional but nice)
-        # Assuming ticket_number is not an auto-increment identity but handled in code,
-        # checking Order model... it is just an Integer.
-        # But if we had a serial, we'd reset it here.
-
         db.commit()
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to clear orders: {e}")
 
-    # 3. Reset Branding in Public Schema
+    # Reset Branding
     try:
         db.execute(text("SET search_path TO public"))
-        tenant = (
-            db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
-        )
-
+        tenant = db.query(Tenant).filter(Tenant.schema_name == schema).first()
         if tenant:
-            # Resets to a clean state
-            tenant.theme_config = {
-                "preset": "mono-luxe",
-                "primary_color": "#000000",
-                "font_family": "Inter",
-                "address": "101 Demo Lane, Tech City",
-                "phone": "(555) 019-2834",
-                "email": "demo@stelly.localhost",
-                "operating_hours": [
-                    {"label": "Mon-Fri", "time": "11:00 AM - 10:00 PM"},
-                    {"label": "Weekends", "time": "10:00 AM - 11:00 PM"},
-                ],
-            }
+            tenant.theme_config = DEMO_TENANT_SEED["theme_config"]
             db.commit()
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to reset theme: {e}")
 
-    return {"message": "Demo environment reset successfully."}
+    return {"message": "Environment reset successfully."}

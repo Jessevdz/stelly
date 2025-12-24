@@ -22,7 +22,7 @@ from app.schemas.menu import (
     MenuItemReorder,
 )
 from app.api.v1.deps import get_current_user
-from app.core.config import settings  # Import settings for DEMO_DOMAIN check
+from app.core.config import settings
 from pydantic import BaseModel
 from sqlalchemy import text
 
@@ -30,24 +30,13 @@ router = APIRouter()
 
 
 # --- Helper to restore context ---
-def restore_tenant_context(db: Session, request: Request):
+def restore_tenant_context(db: Session, request: Request, current_user: dict):
     """
     Re-applies the search_path after a commit resets the transaction.
     """
-    host = request.headers.get("host", "").split(":")[0]
-
-    # [CRITICAL FIX] Explicitly handle Demo Mode.
-    # If we are on the demo domain, force the demo schema immediately.
-    # This bypasses the need for a Tenant record to exist in 'public.tenants'.
-    if host == settings.DEMO_DOMAIN:
-        db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}, public"))
-        return
-
-    # Standard Tenant Logic
-    db.execute(text("SET search_path TO public"))
-    tenant = db.query(Tenant).filter(Tenant.domain == host).first()
-    if tenant:
-        db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
+    # Use the schema resolved by the dependency injection
+    schema = current_user.get("schema", "public")
+    db.execute(text(f"SET search_path TO {schema}, public"))
 
 
 # --- Categories ---
@@ -73,7 +62,7 @@ def create_category(
 
     db.commit()
     # Transaction closed. Re-apply context before refresh.
-    restore_tenant_context(db, request)
+    restore_tenant_context(db, request, current_user)
     db.refresh(cat)
     return cat
 
@@ -131,26 +120,9 @@ def create_item(
     db.add(item)
 
     db.commit()
-    restore_tenant_context(db, request)
+    restore_tenant_context(db, request, current_user)
     db.refresh(item)
     return item
-
-
-@router.put("/items/reorder")
-def reorder_items(
-    payload: List[MenuItemReorder],
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    updates_map = {item.id: item.rank for item in payload}
-    items = db.query(MenuItem).filter(MenuItem.id.in_(updates_map.keys())).all()
-
-    for item in items:
-        if item.id in updates_map:
-            item.rank = updates_map[item.id]
-
-    db.commit()
-    return {"message": "Items reordered successfully"}
 
 
 @router.put("/items/{item_id}", response_model=MenuItemResponse)
@@ -169,7 +141,7 @@ def update_item(
         setattr(item, key, value)
 
     db.commit()
-    restore_tenant_context(db, request)
+    restore_tenant_context(db, request, current_user)
     db.refresh(item)
     return item
 
@@ -220,7 +192,7 @@ def add_modifier_group(
         )
 
     db.commit()
-    restore_tenant_context(db, request)
+    restore_tenant_context(db, request, current_user)
     db.refresh(group)
     return group
 
@@ -264,45 +236,32 @@ def get_tenant_settings(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    host = request.headers.get("host", "").split(":")[0]
+    # This endpoint needs to find the Public Tenant record that corresponds to the
+    # current schema context.
+
+    current_schema = current_user.get("schema")
+
+    # Switch to public to read Tenant config
+    db.execute(text("SET search_path TO public"))
+
+    tenant = db.query(Tenant).filter(Tenant.schema_name == current_schema).first()
+
+    if not tenant:
+        # Fallback just in case something went wrong with the session mapping
+        # Return default config so the UI doesn't crash
+        return ThemeConfigSchema(
+            preset="mono-luxe", primary_color="#000000", font_family="Inter"
+        )
+
+    config = tenant.theme_config or {}
+
+    # Restore context
+    db.execute(text(f"SET search_path TO {current_schema}, public"))
 
     default_hours = [
         {"label": "Mon - Fri", "time": "11:00 AM - 10:00 PM"},
         {"label": "Sat - Sun", "time": "10:00 AM - 11:00 PM"},
     ]
-
-    # Switch to public to read Tenant config
-    db.execute(text("SET search_path TO public"))
-
-    # [CRITICAL FIX] Demo Fallback
-    # If we are in Demo Mode, try to find the record. If missing (failed seed),
-    # return a mock config instead of 404ing the dashboard.
-    if host == settings.DEMO_DOMAIN:
-        tenant = (
-            db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
-        )
-        if not tenant:
-            # Revert to demo schema for safety
-            db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}, public"))
-            return ThemeConfigSchema(
-                preset="mono-luxe",
-                primary_color="#000000",
-                font_family="Inter",
-                operating_hours=default_hours,
-            )
-    else:
-        tenant = db.query(Tenant).filter(Tenant.domain == host).first()
-
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant config not found")
-
-    config = tenant.theme_config or {}
-
-    # Restore context
-    if host == settings.DEMO_DOMAIN:
-        db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}, public"))
-    else:
-        db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
 
     return ThemeConfigSchema(
         preset=config.get("preset", "mono-luxe"),
@@ -322,20 +281,14 @@ def update_tenant_settings(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    host = request.headers.get("host", "").split(":")[0]
+    current_schema = current_user.get("schema")
 
     db.execute(text("SET search_path TO public"))
 
-    # [FIX] Handle Demo Tenant Lookup
-    if host == settings.DEMO_DOMAIN:
-        tenant = (
-            db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
-        )
-    else:
-        tenant = db.query(Tenant).filter(Tenant.domain == host).first()
+    tenant = db.query(Tenant).filter(Tenant.schema_name == current_schema).first()
 
     if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise HTTPException(status_code=404, detail="Tenant config not found")
 
     hours_data = [h.model_dump() for h in payload.operating_hours]
 
@@ -354,9 +307,6 @@ def update_tenant_settings(
     db.commit()
     db.refresh(tenant)
 
-    if host == settings.DEMO_DOMAIN:
-        db.execute(text(f"SET search_path TO {settings.DEMO_SCHEMA}, public"))
-    else:
-        db.execute(text(f"SET search_path TO {tenant.schema_name}, public"))
+    db.execute(text(f"SET search_path TO {current_schema}, public"))
 
     return payload

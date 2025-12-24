@@ -18,7 +18,6 @@ oauth2_scheme = OAuth2PasswordBearer(
 async def get_jwks() -> Dict[str, Any]:
     """
     Fetch JSON Web Key Set from the Identity Provider.
-    In a production app, you should cache this result to avoid HTTP calls on every request.
     """
     try:
         async with httpx.AsyncClient() as client:
@@ -27,8 +26,6 @@ async def get_jwks() -> Dict[str, Any]:
             return resp.json()
     except Exception as e:
         print(f"JWKS Fetch Error: {e}")
-        # In demo mode development where auth server might be down, this shouldn't crash the app
-        # unless necessary. But for JWT validation it is critical.
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Could not verify identity provider availability.",
@@ -41,7 +38,7 @@ async def get_current_user(
     """
     1. Try verifying JWT with Local Secret (Magic Token for Demo).
     2. If invalid, verify JWT Signature against IdP Public Keys (Standard SSO).
-    3. Extract Host Header & Resolve Tenant.
+    3. Extract Host Header & Resolve Tenant OR Dynamic Demo Schema.
     4. Set Database Search Path for the Request.
     """
 
@@ -86,15 +83,19 @@ async def get_current_user(
     tenant = None
     target_schema = "public"
 
+    # Check for specific schema claim (Dynamic Demo Logic)
+    # The login endpoint will embed 'target_schema' into the token
+    forced_schema = payload.get("target_schema")
+
     # A. Check for DEMO Override
     if host == settings.DEMO_DOMAIN:
-        # Force the Demo Schema regardless of what DB says for this domain
-        target_schema = settings.DEMO_SCHEMA
-        # We manually fetch the demo tenant record just for context if needed
-        db.execute(text("SET search_path TO public"))
-        tenant = (
-            db.query(Tenant).filter(Tenant.schema_name == settings.DEMO_SCHEMA).first()
-        )
+        if forced_schema:
+            # The user has a personal sandbox assigned via their token
+            target_schema = forced_schema
+        else:
+            # Fallback to the generic read-only demo if no token claim exists
+            # (Though effectively they shouldn't get here without a token)
+            target_schema = settings.DEMO_SCHEMA
 
     else:
         # B. Standard Lookup
@@ -108,7 +109,6 @@ async def get_current_user(
     # Case A: Super Admin Console
     if host == "admin.stelly.localhost":
         # Ensure the user has super admin privileges
-        # If magic token, we trust the sub claim if it's "demo_admin"
         is_demo_admin = auth_method == "magic" and payload.get("sub") == "demo_admin"
 
         email = payload.get("email")
@@ -121,9 +121,14 @@ async def get_current_user(
         db.execute(text("SET search_path TO public"))
         current_schema = "public"
 
-    # Case B: Tenant Context
-    elif tenant or target_schema == settings.DEMO_SCHEMA:
+    # Case B: Tenant / Demo Context
+    elif (
+        tenant
+        or target_schema.startswith("demo_")
+        or target_schema == settings.DEMO_SCHEMA
+    ):
         # Apply the schema switch
+        # We append 'public' so they can still see shared tables if necessary
         db.execute(text(f"SET search_path TO {target_schema}, public"))
         current_schema = target_schema
 

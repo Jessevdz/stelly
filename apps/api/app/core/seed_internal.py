@@ -212,37 +212,41 @@ OTHER_SEEDS = [
 SEEDS = [DEMO_TENANT_SEED, *OTHER_SEEDS]
 
 
-def provision_tenant_internal(db: Session, seed_data: dict, engine):
+def provision_tenant_internal(
+    db: Session, seed_data: dict, engine, skip_public_record: bool = False
+):
     """
     Provisions a tenant. Checks if tables exist and creates them if needed.
+    Can skip creating the public Tenant record if this is an ephemeral session.
     """
     schema = seed_data["schema_name"]
     is_demo = seed_data["domain"] == settings.DEMO_DOMAIN
 
     # 1. Tenant Record (Public)
-    db.execute(text("SET search_path TO public"))
-    existing = db.query(Tenant).filter(Tenant.domain == seed_data["domain"]).first()
+    if not skip_public_record:
+        db.execute(text("SET search_path TO public"))
+        existing = db.query(Tenant).filter(Tenant.domain == seed_data["domain"]).first()
 
-    if existing:
-        logger.info(f"Tenant {seed_data['name']} record exists.")
-        if is_demo:
-            # For demo, we always want to ensure config is fresh
-            existing.theme_config = seed_data["theme_config"]
+        if existing:
+            logger.info(f"Tenant {seed_data['name']} record exists.")
+            if is_demo:
+                # For demo, we always want to ensure config is fresh
+                existing.theme_config = seed_data["theme_config"]
+                db.commit()
+        else:
+            logger.info(f"Creating Tenant Record: {seed_data['name']}")
+            new_tenant = Tenant(
+                name=seed_data["name"],
+                domain=seed_data["domain"],
+                schema_name=schema,
+                theme_config=seed_data["theme_config"],
+            )
+            db.add(new_tenant)
             db.commit()
-    else:
-        logger.info(f"Creating Tenant Record: {seed_data['name']}")
-        new_tenant = Tenant(
-            name=seed_data["name"],
-            domain=seed_data["domain"],
-            schema_name=schema,
-            theme_config=seed_data["theme_config"],
-        )
-        db.add(new_tenant)
-        db.commit()
 
     # 2. Schema Creation & Reset
     # [Fix 2] For DEMO only: Drop schema to force clean slate if it got corrupted
-    if is_demo:
+    if is_demo and not skip_public_record:
         logger.info(f"Demo Mode: Ensuring clean state for {schema}")
         try:
             # We check if tables exist; if not, we might as well drop schema to be safe
@@ -253,9 +257,14 @@ def provision_tenant_internal(db: Session, seed_data: dict, engine):
             logger.error(f"Schema op failed: {e}")
 
     else:
-        # Standard Tenants
-        db.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema}"))
-        db.commit()
+        # Standard Tenants or Ephemeral Sessions
+        try:
+            db.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema}"))
+            db.commit()
+        except Exception as e:
+            logger.error(f"Failed to create schema {schema}: {e}")
+            # If creating schema fails, we probably can't proceed
+            return
 
     # 3. Table Creation
     # We use the engine directly to ensure binding to the correct schema context

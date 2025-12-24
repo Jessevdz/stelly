@@ -28,9 +28,21 @@ class Tenant(Base):
     theme_config = Column(JSON, default={})
 
 
+class Lead(Base):
+    __tablename__ = "leads"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    assigned_schema = Column(
+        String, nullable=False
+    )  # The ephemeral schema (e.g. demo_xyz)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 # --- TENANT SCHEMA MODELS ---
-
-
+# (Keep User, Category, MenuItem, ModifierGroup, ModifierOption, Order exactly as they were)
 class User(Base):
     __tablename__ = "users"
 
