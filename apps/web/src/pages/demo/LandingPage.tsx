@@ -12,7 +12,8 @@ import {
     CheckCircle2,
     ShieldCheck,
     MousePointerClick,
-    Check
+    Check,
+    Circle, Square
 } from 'lucide-react';
 
 export const LandingPage = () => {
@@ -21,6 +22,34 @@ export const LandingPage = () => {
     const handleStartDemo = () => {
         navigate('/demo/split');
     };
+
+    // --- NEW SUBTLE LOGO COMPONENT ---
+    const SnackyLogo = ({ className = "" }: { className?: string }) => (
+        <div className={`flex items-center gap-2.5 cursor-pointer group ${className}`} onClick={() => navigate('/')}>
+            {/* The Layered Hexagon Icon */}
+            <div className="relative w-7 h-7">
+                {/* 1. Red Base Layer (Shadow) */}
+                <Hexagon
+                    className="absolute top-[2px] left-[2px] text-red-600 fill-red-600 opacity-90"
+                    size={27}
+                    strokeWidth={0}
+                />
+                {/* 2. Yellow Middle Layer (Fill) */}
+                <Hexagon
+                    className="absolute top-[1px] left-[1px] text-yellow-400 fill-yellow-400"
+                    size={26}
+                    strokeWidth={0}
+                />
+                {/* 3. Black Top Layer (Outline Structure) */}
+                <Hexagon
+                    className="relative z-10 text-slate-900 fill-none"
+                    size={26}
+                    strokeWidth={2.5}
+                />
+            </div>
+            <span className="font-bold text-xl tracking-tight text-slate-900 leading-none mt-0.5">Snacky</span>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900 relative overflow-hidden">
@@ -35,8 +64,7 @@ export const LandingPage = () => {
             <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 transition-all">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-slate-900">
-                        <Hexagon className="text-blue-600 fill-blue-600/10" size={28} strokeWidth={2} />
-                        <span>OmniOrder</span>
+                        <SnackyLogo />
                     </div>
                     <div className="flex items-center gap-6">
                         <button
@@ -314,15 +342,12 @@ export const LandingPage = () => {
                 {/* --- Footer --- */}
                 <footer className="pt-16 pb-10 text-center border-t border-slate-100 bg-white">
                     <div className="flex items-center justify-center gap-2 mb-6 opacity-80">
-                        <Hexagon size={20} className="text-blue-600" />
-                        <span className="font-bold tracking-tight text-slate-900">OmniOrder</span>
+                        <SnackyLogo />
                     </div>
                     <p className="text-slate-400 text-sm">
-                        &copy; {new Date().getFullYear()} OmniOrder Platform. <br />
                         Gemaakt voor de Belgische horeca.
                     </p>
                 </footer>
-
             </main>
         </div>
     );
