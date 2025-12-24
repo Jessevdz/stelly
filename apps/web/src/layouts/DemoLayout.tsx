@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import { PersonaSwitcher } from '../components/demo/PersonaSwitcher';
 import { useTenantConfig, TenantConfig } from '../hooks/useTenantConfig';
-import { DemoLogin } from '../pages/demo/DemoLogin'; // <--- Import new component
+import { DemoLogin } from '../pages/demo/DemoLogin';
 
 export interface DemoContextType {
     config: TenantConfig | null;
@@ -25,8 +25,10 @@ export const DemoLayout = () => {
         }
     }, [initialConfig]);
 
-    const handleLoginSuccess = (token: string) => {
+    // UPDATED: Accept user object
+    const handleLoginSuccess = (token: string, user: any) => {
         sessionStorage.setItem('demo_token', token);
+        sessionStorage.setItem('demo_user', JSON.stringify(user)); // Persist user details
         setDemoToken(token);
     };
 
@@ -54,7 +56,7 @@ export const DemoLayout = () => {
 
     if (!isDemoDomain) return <Navigate to="/" replace />;
 
-    // [UPDATED] If no token, show the Login Screen
+    // If no token, show the Login Screen
     if (!demoToken) {
         return <DemoLogin onLogin={handleLoginSuccess} />;
     }

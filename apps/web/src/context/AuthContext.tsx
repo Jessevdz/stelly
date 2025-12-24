@@ -25,7 +25,15 @@ export const useAuth = () => {
     // Check if we are in the demo environment and have a token stored
     const demoToken = typeof window !== 'undefined' ? sessionStorage.getItem('demo_token') : null;
 
-    // UPDATED CHECK: Trust the domain OR the path
+    // UPDATED: Attempt to parse demo user info
+    let demoUser = null;
+    try {
+        const storedUser = sessionStorage.getItem('demo_user');
+        if (storedUser) demoUser = JSON.parse(storedUser);
+    } catch (e) {
+        console.error("Failed to parse demo user", e);
+    }
+
     const isDemoContext = typeof window !== 'undefined' && (
         window.location.pathname.startsWith('/demo') ||
         window.location.hostname.startsWith('demo.')
@@ -38,15 +46,19 @@ export const useAuth = () => {
             isLoading: false,
             user: {
                 profile: {
-                    name: "Demo Admin",
-                    email: "demo@stelly.localhost",
-                    sub: "demo_admin"
+                    // UPDATED: Use dynamic name if available
+                    name: demoUser?.name || "Demo Admin",
+                    email: demoUser?.email || "demo@stelly.localhost",
+                    sub: "demo_admin",
+                    // Also expose schema for debugging if needed
+                    schema: demoUser?.schema
                 },
                 access_token: demoToken
             },
             login: () => { }, // No-op
             logout: () => {
                 sessionStorage.removeItem('demo_token');
+                sessionStorage.removeItem('demo_user'); // Clean up user too
                 window.location.href = '/demo/split';
             },
             ...auth // fallback properties

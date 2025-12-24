@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { BrandButton } from './common/BrandButton';
 import { X, ShoppingBag, Trash2, User, Hash } from 'lucide-react';
+import { useAuth } from '../context/AuthContext'; // <--- Import
 
 export function CartDrawer() {
     const {
         items, isDrawerOpen, toggleDrawer, removeFromCart,
         cartTotal, clearCart, setActiveOrderId
     } = useCart();
+
+    const { user } = useAuth();
 
     // Local state for fulfillment details
     const [customerName, setCustomerName] = useState('');
@@ -19,12 +22,15 @@ export function CartDrawer() {
         if (isDrawerOpen && items.length > 0 && !customerName) {
             // Check if we are in demo environment
             const isDemo = window.location.hostname.includes('demo') || window.location.hostname.includes('localhost');
+
             if (isDemo) {
-                setCustomerName("Demo Guest");
+                // UPDATED: Use actual authenticated name if available
+                setCustomerName(user?.profile?.name || "Demo Guest");
             }
         }
-    }, [isDrawerOpen, items.length]);
+    }, [isDrawerOpen, items.length, user]);
 
+    // ... rest of the component remains the same ...
     const handleCheckout = async () => {
         if (items.length === 0) return;
         if (!customerName.trim()) {
@@ -55,7 +61,8 @@ export function CartDrawer() {
                 const data = await res.json();
                 setActiveOrderId(data.id);
                 clearCart();
-                setCustomerName(''); // Reset for next order
+                // Don't reset customerName so they can order again easily in demo
+                // setCustomerName(''); 
                 setTableNumber('');
                 toggleDrawer(false);
             } else {
