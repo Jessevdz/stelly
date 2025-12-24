@@ -21,45 +21,45 @@ interface ThemeConfig {
 const PRESETS = [
     {
         id: 'stelly',
-        name: 'Cloud Kitchen',
-        desc: 'Clean, SaaS-style, optimized for clarity.',
-        previewBg: '#F8FAFC',
+        name: 'Stelly',
+        desc: 'De kenmerkende platformstijl.',
+        previewBg: '#FFFFFF',
         previewFg: '#2563EB'
     },
     {
         id: 'mono-luxe',
         name: 'Mono Luxe',
-        desc: 'High contrast, sophisticated, minimal.',
+        desc: 'Hoog contrast, minimaal.',
         previewBg: '#F5F5F5',
         previewFg: '#000000'
     },
     {
         id: 'fresh-market',
         name: 'Fresh Market',
-        desc: 'Organic, friendly, rounded corners.',
+        desc: 'Organisch, vriendelijk, afgeronde hoeken.',
         previewBg: '#F1F8E9',
-        previewFg: '#4CAF50'
+        previewFg: '#16A34A'
     },
     {
         id: 'tech-ocean',
         name: 'Tech Ocean',
-        desc: 'Modern, trustworthy, dark mode optimized.',
+        desc: 'Modern, betrouwbaar, geoptimaliseerd voor dark mode.',
         previewBg: '#0F172A',
-        previewFg: '#2563EB'
+        previewFg: '#3B82F6'
     },
 ];
 
 export function TenantSettings() {
     const { token } = useAuth();
     const [config, setConfig] = useState<ThemeConfig>({
-        preset: 'mono-luxe',
-        primary_color: '#000000',
+        preset: 'stelly',
+        primary_color: '#2563EB',
         font_family: 'Inter',
         address: '',
         phone: '',
         email: '',
         operating_hours: [
-            { label: 'Mon - Fri', time: '11:00 AM - 10:00 PM' }
+            { label: 'Ma - Vr', time: '11:00 - 22:00' }
         ]
     });
     const [loading, setLoading] = useState(true);
@@ -75,8 +75,8 @@ export function TenantSettings() {
             .then(res => res.json())
             .then(data => {
                 setConfig({
-                    preset: data.preset || 'mono-luxe',
-                    primary_color: data.primary_color || '#000000',
+                    preset: data.preset || 'stelly',
+                    primary_color: data.primary_color || '#2563EB',
                     font_family: data.font_family || 'Inter',
                     address: data.address || '',
                     phone: data.phone || '',
@@ -100,10 +100,10 @@ export function TenantSettings() {
                 body: JSON.stringify(config)
             });
             if (res.ok) {
-                alert("Theme updated! Refresh your store page to see changes.");
+                alert("Thema bijgewerkt! Refresh uw winkelpagina om de wijzigingen te zien.");
             }
         } catch (e) {
-            alert("Failed to save settings");
+            alert("Instellingen opslaan mislukt");
         } finally {
             setSaving(false);
         }
@@ -139,14 +139,14 @@ export function TenantSettings() {
         setConfig({ ...config, operating_hours: updated });
     };
 
-    if (loading) return <div>Loading Settings...</div>;
+    if (loading) return <div>Instellingen laden...</div>;
 
     return (
         <div className="max-w-4xl mx-auto pb-20">
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Storefront Appearance</h1>
-                    <p className="text-gray-500">Customize how your customers see your brand.</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Design</h1>
+                    <p className="text-gray-500">Pas aan hoe klanten uw pagina zien.</p>
                 </div>
                 <button
                     onClick={handleSave}
@@ -155,139 +155,92 @@ export function TenantSettings() {
                     style={{ backgroundColor: config.primary_color }}
                 >
                     <Save size={18} />
-                    {saving ? 'Saving...' : 'Publish Changes'}
+                    {saving ? 'Opslaan...' : 'Publiceren'}
                 </button>
             </div>
 
             {/* 1. Preset Selection */}
             <section className="mb-10">
                 <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <Palette size={20} className="text-gray-500" /> Theme Preset
+                    <Palette size={20} className="text-gray-500" /> Thema
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     {PRESETS.map(p => (
                         <div
                             key={p.id}
                             onClick={() => selectPreset(p.id)}
                             className={`
-                                cursor-pointer rounded-xl border-2 overflow-hidden transition-all
+                                cursor-pointer rounded-xl border-2 overflow-hidden transition-all flex flex-col
                                 ${config.preset === p.id
                                     ? 'border-blue-600 ring-4 ring-blue-500/20 shadow-xl scale-105'
                                     : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
                                 }
                             `}
                         >
-                            <div className="h-32 flex items-center justify-center relative" style={{ backgroundColor: p.previewBg }}>
-                                <div className="bg-white p-3 rounded shadow-sm w-3/4 space-y-2">
-                                    <div className="h-2 w-1/2 rounded-full" style={{ backgroundColor: p.previewFg }}></div>
-                                    <div className="h-2 w-3/4 bg-gray-100 rounded-full"></div>
+                            <div className="h-24 flex items-center justify-center relative shrink-0" style={{ backgroundColor: p.previewBg }}>
+                                <div className="bg-white p-2 rounded shadow-sm w-3/4 space-y-2">
+                                    <div className="h-1.5 w-1/2 rounded-full" style={{ backgroundColor: p.previewFg }}></div>
+                                    <div className="h-1.5 w-3/4 bg-gray-100 rounded-full"></div>
                                 </div>
                                 {config.preset === p.id && (
                                     <div className="absolute top-2 right-2 bg-blue-600 text-white p-1 rounded-full">
-                                        <Check size={14} strokeWidth={4} />
+                                        <Check size={12} strokeWidth={4} />
                                     </div>
                                 )}
                             </div>
-                            <div className="p-4 bg-white">
-                                <h3 className="font-bold text-gray-900">{p.name}</h3>
-                                <p className="text-xs text-gray-500 mt-1">{p.desc}</p>
+                            <div className="p-3 bg-white flex-1 border-t border-gray-100">
+                                <h3 className="font-bold text-gray-900 text-sm">{p.name}</h3>
+                                <p className="text-[10px] text-gray-500 mt-1 leading-tight">{p.desc}</p>
                             </div>
                         </div>
                     ))}
                 </div>
             </section>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* 2. Color Overrides */}
-                <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full border border-gray-300" style={{ backgroundColor: config.primary_color }} />
-                        Brand Color
-                    </h2>
-                    <div className="flex gap-4">
-                        <input
-                            type="color"
-                            value={config.primary_color}
-                            onChange={(e) => setConfig({ ...config, primary_color: e.target.value })}
-                            className="h-12 w-12 p-1 border rounded cursor-pointer"
-                        />
-                        <div className="flex-1">
-                            <input
-                                type="text"
-                                value={config.primary_color}
-                                onChange={(e) => setConfig({ ...config, primary_color: e.target.value })}
-                                className="w-full px-4 py-3 border rounded-lg font-mono uppercase text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
-                            <p className="text-xs text-gray-400 mt-2">Overrides the preset's default primary color.</p>
-                        </div>
-                    </div>
-                </section>
-
-                {/* 3. Typography */}
-                <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                    <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <Type size={20} className="text-gray-500" /> Typography
-                    </h2>
-                    <select
-                        value={config.font_family}
-                        onChange={(e) => setConfig({ ...config, font_family: e.target.value })}
-                        className="w-full px-4 py-3 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                    >
-                        <option value="Inter">Inter (Clean Sans)</option>
-                        <option value="Playfair Display">Playfair Display (Elegant Serif)</option>
-                        <option value="Oswald">Oswald (Strong Condensed)</option>
-                        <option value="Lato">Lato (Humanist Sans)</option>
-                    </select>
-                    <div className="mt-4 p-4 bg-gray-50 rounded border text-center">
-                        <p style={{ fontFamily: config.font_family }} className="text-xl">The quick brown fox jumps.</p>
-                    </div>
-                </section>
-            </div>
-
             {/* 4. Store Information */}
             <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mt-8">
                 <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <MapPin size={20} className="text-gray-500" /> Store Information
+                    <MapPin size={20} className="text-gray-500" /> Winkelgegevens
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Address</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Volledig Adres</label>
                         <input
                             type="text"
                             value={config.address}
                             onChange={(e) => setConfig({ ...config, address: e.target.value })}
                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            placeholder="e.g. 123 Culinary Ave, New York, NY"
+                            placeholder="bv. Nieuwstraat 123, 1000 Brussel"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Telefoonnummer</label>
                         <input
                             type="text"
                             value={config.phone}
                             onChange={(e) => setConfig({ ...config, phone: e.target.value })}
                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            placeholder="(555) 123-4567"
+                            placeholder="bv. 02 123 45 67"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">E-mailadres</label>
                         <input
                             type="email"
                             value={config.email}
                             onChange={(e) => setConfig({ ...config, email: e.target.value })}
                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                            placeholder="hello@restaurant.com"
+                            placeholder="info@restaurant.be"
                         />
                     </div>
                 </div>
 
                 {/* --- Dynamic Hours Section --- */}
                 <div className="border-t border-gray-100 pt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Operating Hours</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">Openingsuren</label>
 
                     <div className="space-y-3">
                         {config.operating_hours.map((hour, index) => (
@@ -297,14 +250,14 @@ export function TenantSettings() {
                                     value={hour.label}
                                     onChange={(e) => handleHourChange(index, 'label', e.target.value)}
                                     className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                    placeholder="e.g. Weekdays"
+                                    placeholder="bv. Weekdagen"
                                 />
                                 <input
                                     type="text"
                                     value={hour.time}
                                     onChange={(e) => handleHourChange(index, 'time', e.target.value)}
                                     className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                    placeholder="e.g. 9:00 AM - 5:00 PM"
+                                    placeholder="bv. 09:00 - 17:00"
                                 />
                                 <button
                                     onClick={() => removeHourRow(index)}
@@ -320,7 +273,7 @@ export function TenantSettings() {
                         onClick={addHourRow}
                         className="mt-3 flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700"
                     >
-                        <Plus size={16} /> Add Hours Row
+                        <Plus size={16} /> Rij toevoegen
                     </button>
                 </div>
             </section>

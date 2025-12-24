@@ -40,7 +40,7 @@ const RestaurantInfoModal = ({ isOpen, onClose, name }: { isOpen: boolean; onClo
                         <div>
                             <h4 className="font-bold text-text-main text-sm uppercase tracking-wide mb-1">Adres</h4>
                             <p className="text-text-muted text-sm leading-relaxed">
-                                Lekkerdreef, 26<br />
+                                Smaakdreef, 26<br />
                                 2260, Westerlo
                             </p>
                             <a href="#" className="text-primary text-xs font-bold mt-2 inline-block hover:underline">Google Maps</a>
@@ -135,7 +135,7 @@ export const HeroSection: React.FC<HeroProps> = ({
                     <div className="relative z-10 p-8 max-w-4xl flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-700">
                         <div className="mb-6 opacity-80">
                             <span className="text-white text-xs font-bold tracking-[0.2em] uppercase border-b border-white/30 pb-1">
-                                Est. 2023 • Fine Dining
+                                Sinds 2022 • Fine Dining
                             </span>
                         </div>
 
@@ -144,8 +144,7 @@ export const HeroSection: React.FC<HeroProps> = ({
                         </h1>
 
                         <p className="text-white/80 text-lg md:text-xl max-w-xl font-light mb-10 leading-relaxed">
-                            Experience authentic flavors crafted with passion.
-                            Welcome to our digital home.
+                            Ontdek authentieke smaken die met passie worden bereid.
                         </p>
 
                         <div className="flex flex-col md:flex-row gap-4">
@@ -155,7 +154,7 @@ export const HeroSection: React.FC<HeroProps> = ({
                                 variant="inverse"
                                 className="min-w-[160px]"
                             >
-                                View Menu
+                                Menu
                             </BrandButton>
                             <BrandButton
                                 onClick={() => setShowInfo(true)}
@@ -163,7 +162,7 @@ export const HeroSection: React.FC<HeroProps> = ({
                                 size="lg"
                                 className="min-w-[160px]"
                             >
-                                Location & Info
+                                Adres & Info
                             </BrandButton>
                         </div>
                     </div>
@@ -242,9 +241,6 @@ export const HeroSection: React.FC<HeroProps> = ({
 
                             <div className="space-y-3">
                                 <div className="flex gap-2">
-                                    <span className="bg-primary text-primary-fg px-2 py-0.5 rounded-[var(--radius-sm)] text-xs font-bold uppercase tracking-wide">
-                                        Verified Store
-                                    </span>
                                     <span className="bg-green-100 text-green-700 border border-green-200 px-2 py-0.5 rounded-[var(--radius-sm)] text-xs font-bold uppercase tracking-wide flex items-center gap-1">
                                         <div className="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse" /> Online
                                     </span>
@@ -253,7 +249,7 @@ export const HeroSection: React.FC<HeroProps> = ({
                                     {name}
                                 </h1>
                                 <p className="text-text-muted flex items-center gap-2 text-sm md:text-base">
-                                    <MapPin size={16} /> San Francisco, CA • Open until 10:00 PM
+                                    <Clock size={16} /> Open tot 22:00 uur
                                 </p>
                             </div>
 
@@ -263,13 +259,13 @@ export const HeroSection: React.FC<HeroProps> = ({
                                     onClick={() => setShowInfo(true)}
                                     className="flex-1 md:flex-none justify-center"
                                 >
-                                    <Info size={18} /> More Info
+                                    <Info size={18} /> Meer Info
                                 </BrandButton>
                                 <BrandButton
                                     className="flex-1 md:flex-none justify-center"
                                     onClick={() => document.getElementById('cat-list')?.scrollIntoView({ behavior: 'smooth' })}
                                 >
-                                    Start Order
+                                    Bestel
                                 </BrandButton>
                             </div>
 

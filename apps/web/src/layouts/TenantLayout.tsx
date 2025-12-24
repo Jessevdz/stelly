@@ -31,31 +31,27 @@ export const TenantLayout = () => {
                         </div>
                     </div>
 
-                    <div className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Restaurant Operations
-                    </div>
-
                     <nav className="flex-1 px-3 space-y-1">
                         <NavLink
                             to={`${basePath}/dashboard`}
                             className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-md transition-all font-medium ${isActive ? 'bg-gray-100 text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                         >
                             <LayoutGrid size={18} />
-                            Overview
+                            Overzicht
                         </NavLink>
                         <NavLink
                             to={`${basePath}/menu`}
                             className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-md transition-all font-medium ${isActive ? 'bg-gray-100 text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                         >
                             <Utensils size={18} />
-                            Menu Builder
+                            Configureer Menu
                         </NavLink>
                         <NavLink
                             to={`${basePath}/settings`}
                             className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-md transition-all font-medium ${isActive ? 'bg-gray-100 text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
                         >
                             <Settings size={18} />
-                            Settings
+                            Instellingen
                         </NavLink>
                     </nav>
 

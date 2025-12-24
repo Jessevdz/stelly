@@ -67,7 +67,7 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
             {showThemes && (
                 <div className="bg-white/90 backdrop-blur-md border border-gray-200 p-2 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 zoom-in-95 duration-200 mb-2 w-64">
                     <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 mb-1">
-                        Select Brand Vibe
+                        Selecteer design:
                     </div>
                     <div className="space-y-1">
                         {Object.keys(THEME_PRESETS).map((key) => {

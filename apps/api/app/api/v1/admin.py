@@ -221,7 +221,8 @@ class OperatingHour(BaseModel):
 
 
 class ThemeConfigSchema(BaseModel):
-    preset: Literal["mono-luxe", "fresh-market", "tech-ocean"]
+    # UPDATED: Added "stelly" to allowed literals
+    preset: Literal["stelly", "mono-luxe", "fresh-market", "tech-ocean"]
     primary_color: str
     font_family: str
     address: Optional[str] = "123 Culinary Avenue"
