@@ -277,7 +277,7 @@ async def update_order_status(
     "/orders",
     response_model=OrderResponse,
     status_code=201,
-    dependencies=[Depends(RateLimiter(times=3, seconds=600))],
+    dependencies=[Depends(RateLimiter(times=20, seconds=600))],
 )
 async def create_store_order(
     payload: OrderCreateRequest, request: Request, db: Session = Depends(get_db)
