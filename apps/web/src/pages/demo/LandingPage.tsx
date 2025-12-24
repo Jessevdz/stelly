@@ -7,11 +7,11 @@ import {
     ChefHat,
     Globe,
     Percent,
-    LayoutTemplate,
     BarChart3,
-    Monitor,
+    Zap,
     CheckCircle2,
-    Zap
+    ShieldCheck,
+    MousePointerClick
 } from 'lucide-react';
 
 export const LandingPage = () => {
@@ -22,11 +22,13 @@ export const LandingPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900 relative">
+        <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900 relative overflow-hidden">
 
-            {/* Background Texture */}
-            <div className="absolute inset-0 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none z-0"></div>
-            <div className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-blue-50/50 to-transparent pointer-events-none z-0"></div>
+            {/* --- Background Architecture --- */}
+            {/* Subtle Grid Pattern for "Infrastructure" feel */}
+            <div className="absolute inset-0 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none z-0"></div>
+            {/* Top gradient fade */}
+            <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-blue-50/80 to-transparent pointer-events-none z-0"></div>
 
             {/* --- Navigation --- */}
             <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 transition-all">
@@ -35,12 +37,12 @@ export const LandingPage = () => {
                         <Hexagon className="text-blue-600 fill-blue-600/10" size={28} strokeWidth={2} />
                         <span>OmniOrder</span>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-6">
                         <button
                             onClick={handleStartDemo}
-                            className="bg-blue-600 text-white text-sm font-bold px-6 py-2.5 rounded-full hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-600/20"
+                            className="bg-slate-900 text-white text-sm font-bold px-5 py-2.5 rounded-full hover:bg-blue-600 transition-all active:scale-95 shadow-lg shadow-slate-900/10 hover:shadow-blue-600/20"
                         >
-                            Probeer De Demo
+                            Start Demo
                         </button>
                     </div>
                 </div>
@@ -49,15 +51,15 @@ export const LandingPage = () => {
             <main className="relative z-10 pt-32 pb-20">
 
                 {/* --- Hero Section --- */}
-                <section className="max-w-4xl mx-auto px-6 text-center mb-24">
+                <section className="max-w-5xl mx-auto px-6 text-center mb-32">
 
                     <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1] animate-in slide-in-from-bottom-4 duration-700">
-                        Get a professional website for your restaurant. <br className="hidden md:block" />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Instantly.</span>
+                        Jouw eigen bestelplatform. <br className="hidden md:block" />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Zonder gedoe.</span>
                     </h1>
 
                     <p className="text-xl text-slate-500 font-normal mb-10 max-w-2xl mx-auto leading-relaxed animate-in slide-in-from-bottom-6 duration-700 delay-100">
-                        Stop paying huge commissions to delivery apps. Launch your own ordering site today. No technical skills required.
+                        Zet jouw horecazaak onmiddellijk online. Geen vaste kosten, geen technische kennis nodig.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in slide-in-from-bottom-8 duration-700 delay-200">
@@ -71,134 +73,208 @@ export const LandingPage = () => {
                     </div>
                 </section>
 
-                {/* --- Core Benefits --- */}
-                <section className="bg-slate-50 py-24 border-y border-slate-100">
-                    <div className="max-w-6xl mx-auto px-6">
-                        <div className="text-center mb-16">
-                            <h2 className="text-3xl font-bold text-slate-900 mb-4">Everything you need to run online.</h2>
-                            <p className="text-slate-500 max-w-2xl mx-auto">We handle the technology so you can focus on the food. One platform covers your menu, orders, and payments.</p>
+                {/* --- Unified Features & Advantages --- */}
+                <section className="max-w-7xl mx-auto px-6 mb-32">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+
+                        {/* Visual Column (Dashboard & Mobile Mockup) */}
+                        <div className="lg:col-span-5 order-2 lg:order-1 relative">
+                            {/* Abstract Decor Elements */}
+                            <div className="absolute -top-10 -left-10 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl -z-10"></div>
+                            <div className="absolute top-20 right-0 w-72 h-72 bg-indigo-400/10 rounded-full blur-3xl -z-10"></div>
+
+                            {/* --- Mockup 1: Sales Dashboard --- */}
+                            <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-slate-200/50 p-6 transform hover:scale-[1.02] transition-transform duration-500 relative z-10 mb-6">
+                                <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                                    <div>
+                                        <div className="text-xs text-slate-400 uppercase font-bold tracking-wider">Dagomzet</div>
+                                        <div className="text-3xl font-bold text-slate-900 mt-1">€1.240,50</div>
+                                    </div>
+                                    <div className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-green-100">
+                                        <Zap size={12} className="fill-green-700" /> +12%
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="flex items-center gap-4 group cursor-default">
+                                            <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 font-bold text-xs group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                                                #{100 + i}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="h-2.5 w-24 bg-slate-100 rounded-full mb-1.5 group-hover:bg-slate-200 transition-colors"></div>
+                                                <div className="h-2 w-12 bg-slate-50 rounded-full"></div>
+                                            </div>
+                                            <div className="text-sm font-bold text-slate-700">€45.00</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center">
+                                    <div className="flex -space-x-2">
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white"></div>
+                                        ))}
+                                    </div>
+                                    <span className="text-xs text-slate-400 font-medium">Live bestellingen</span>
+                                </div>
+                            </div>
+
+                            {/* --- Mockup 2: Floating Mobile Menu --- */}
+                            <div className="absolute -bottom-12 -right-4 md:-right-12 w-48 bg-slate-900 text-white rounded-[2rem] p-4 shadow-2xl border-4 border-white transform rotate-[-6deg] hover:rotate-0 transition-all duration-500 z-20 hidden sm:block">
+                                <div className="w-8 h-1 bg-slate-700 rounded-full mx-auto mb-4"></div>
+                                <div className="space-y-3">
+                                    <div className="bg-white/10 p-2 rounded-xl flex gap-3 items-center">
+                                        <div className="w-8 h-8 rounded bg-orange-500/20"></div>
+                                        <div className="flex-1 space-y-1">
+                                            <div className="w-12 h-1.5 bg-white/40 rounded"></div>
+                                            <div className="w-8 h-1.5 bg-white/20 rounded"></div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/10 p-2 rounded-xl flex gap-3 items-center">
+                                        <div className="w-8 h-8 rounded bg-green-500/20"></div>
+                                        <div className="flex-1 space-y-1">
+                                            <div className="w-16 h-1.5 bg-white/40 rounded"></div>
+                                            <div className="w-10 h-1.5 bg-white/20 rounded"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-4 bg-blue-600 h-8 rounded-lg w-full flex items-center justify-center text-[10px] font-bold">
+                                    Bestellen • €24.50
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {/* Benefit 1 */}
-                            <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-                                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-6">
-                                    <Smartphone size={24} />
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-900 mb-3">Mobile Optimized</h3>
-                                <p className="text-slate-500 leading-relaxed text-sm">
-                                    Your menu looks beautiful on every device. Customers can order easily from their phones without downloading an app.
-                                </p>
-                            </div>
+                        {/* Content Column */}
+                        <div className="lg:col-span-7 order-1 lg:order-2">
+                            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
+                                Alles wat je nodig hebt om <span className="text-blue-600">online te groeien</span>.
+                            </h2>
 
-                            {/* Benefit 2 */}
-                            <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-                                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 mb-6">
-                                    <LayoutTemplate size={24} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
+                                {/* Benefit 1 */}
+                                <div className="flex gap-4">
+                                    <div className="shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                                            <Smartphone size={24} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Geoptimaliseerd voor Smartphones</h3>
+                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                            Je klanten moeten geen app downloaden. Je menu ziet er prachtig uit op elke smartphone.
+                                        </p>
+                                    </div>
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900 mb-3">Brand Customization</h3>
-                                <p className="text-slate-500 leading-relaxed text-sm">
-                                    Don't look like everyone else. Choose your colors, fonts, and layout to match your restaurant's unique vibe.
-                                </p>
-                            </div>
 
-                            {/* Benefit 3 */}
-                            <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-                                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600 mb-6">
-                                    <ChefHat size={24} />
+                                {/* Benefit 2 */}
+                                <div className="flex gap-4">
+                                    <div className="shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
+                                            <Percent size={24} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Transparante Pricing</h3>
+                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                            Geen vaste maandelijkse kosten. Je betaalt slechts <strong>1%</strong> per transactie, de laagste commissie op de markt.
+                                        </p>
+                                    </div>
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900 mb-3">Kitchen Display</h3>
-                                <p className="text-slate-500 leading-relaxed text-sm">
-                                    Replace paper tickets. Orders appear instantly on a tablet in your kitchen, complete with timers and alerts.
-                                </p>
+
+                                {/* Benefit 3 */}
+                                <div className="flex gap-4">
+                                    <div className="shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+                                            <ChefHat size={24} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Smart Kitchen Display</h3>
+                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                            Organiseer je bestellingen digitaal. Geen rondslingerende bonnetjes meer, maar een strakke workflow.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Benefit 4 */}
+                                <div className="flex gap-4">
+                                    <div className="shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                                            <BarChart3 size={24} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Gratis Analytics</h3>
+                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                            Inzichten in je piekuren en best verkopende producten, standaard inbegrepen.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Benefit 5 */}
+                                <div className="flex gap-4">
+                                    <div className="shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-pink-50 flex items-center justify-center text-pink-600">
+                                            <MousePointerClick size={24} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Brand Customization</h3>
+                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                            Jouw logo, jouw kleuren. Pas de look & feel aan zodat het past bij jouw zaak.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Benefit 6 */}
+                                <div className="flex gap-4">
+                                    <div className="shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
+                                            <Globe size={24} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Direct Online</h3>
+                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                            Heb je nog geen website? Wij zetten je onmiddellijk op de kaart.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                {/* --- Business Advantages --- */}
-                <section className="max-w-5xl mx-auto px-6 py-24">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                        <div>
-                            <h2 className="text-3xl font-bold text-slate-900 mb-6">Grow your business without the risk.</h2>
-                            <div className="space-y-6">
-                                <div className="flex gap-4">
-                                    <div className="shrink-0 mt-1"><Globe className="text-blue-600" /></div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900">Instant Online Presence</h4>
-                                        <p className="text-sm text-slate-500 mt-1">Perfect for businesses that don't have a website yet. We get you online immediately.</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="shrink-0 mt-1"><Percent className="text-blue-600" /></div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900">Pay Only When You Sell</h4>
-                                        <p className="text-sm text-slate-500 mt-1">Just a 1% transaction fee on orders. No monthly fees, no upfront costs, no hidden risks.</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="shrink-0 mt-1"><BarChart3 className="text-blue-600" /></div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900">Free Analytics</h4>
-                                        <p className="text-sm text-slate-500 mt-1">Understand your peak hours and best-selling items with our built-in dashboard.</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="shrink-0 mt-1"><Monitor className="text-blue-600" /></div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900">Works Everywhere</h4>
-                                        <p className="text-sm text-slate-500 mt-1">Runs on any laptop, tablet, or phone you already own. No expensive hardware to buy.</p>
-                                    </div>
-                                </div>
+                {/* --- Trust / Simplicity Bar --- */}
+                <section className="bg-slate-50 border-y border-slate-100 py-16">
+                    <div className="max-w-4xl mx-auto px-6 text-center">
+                        <h2 className="text-2xl font-bold text-slate-900 mb-8">Groei zonder risico</h2>
+                        <div className="flex flex-wrap justify-center gap-4 md:gap-12">
+                            <div className="flex items-center gap-2 text-slate-600 font-medium bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                                <CheckCircle2 className="text-blue-600" size={20} />
+                                <span>Geen opstartkosten</span>
                             </div>
-                        </div>
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-full blur-3xl opacity-50 -z-10"></div>
-                            <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-500">
-                                <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-                                    <div>
-                                        <div className="text-xs text-slate-400 uppercase font-bold">Total Sales</div>
-                                        <div className="text-2xl font-bold text-slate-900">$1,240.50</div>
-                                    </div>
-                                    <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">+12%</div>
-                                </div>
-                                <div className="space-y-4">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 font-bold text-xs">
-                                                #{100 + i}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="h-2 w-24 bg-slate-200 rounded mb-1"></div>
-                                                <div className="h-2 w-12 bg-slate-100 rounded"></div>
-                                            </div>
-                                            <div className="text-sm font-bold text-slate-700">$45.00</div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="mt-8 pt-4 border-t border-slate-100 text-center">
-                                    <button className="text-blue-600 text-sm font-bold flex items-center justify-center gap-1">
-                                        View Full Report <ArrowRight size={14} />
-                                    </button>
-                                </div>
+                            <div className="flex items-center gap-2 text-slate-600 font-medium bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                                <CheckCircle2 className="text-blue-600" size={20} />
+                                <span>Geen maandelijkse kosten</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-600 font-medium bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                                <ShieldCheck className="text-blue-600" size={20} />
+                                <span>1% bestelcommissie</span>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 {/* --- Final CTA --- */}
-                <section className="bg-slate-900 text-white py-20 text-center">
+                <section className="pt-24 pb-12 text-center">
                     <div className="max-w-3xl mx-auto px-6">
-                        <Zap size={48} className="mx-auto text-yellow-400 mb-6" />
-                        <h2 className="text-4xl font-bold mb-6">Ready to upgrade your restaurant?</h2>
-                        <p className="text-slate-400 text-lg mb-10">Join thousands of restaurants taking control of their online orders.</p>
+                        <h2 className="text-4xl font-bold mb-6 text-slate-900">Klaar om te moderniseren?</h2>
                         <button
                             onClick={handleStartDemo}
-                            className="bg-white text-slate-900 font-bold px-10 py-4 rounded-full text-lg hover:bg-blue-50 hover:text-blue-700 transition-all active:scale-95 shadow-xl"
+                            className="bg-blue-600 text-white font-bold px-10 py-4 rounded-full text-lg hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-600/20"
                         >
-                            Launch Free Demo
+                            Lanceer De Demo
                         </button>
-                        <p className="mt-6 text-sm text-slate-500">Takes 30 seconds. No signup required.</p>
                     </div>
                 </section>
 
@@ -210,7 +286,7 @@ export const LandingPage = () => {
                     </div>
                     <p className="text-slate-400 text-sm">
                         &copy; {new Date().getFullYear()} OmniOrder Platform. <br />
-                        Made for hospitality.
+                        Gemaakt voor de Belgische horeca.
                     </p>
                 </footer>
 
