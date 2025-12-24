@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'; // <--- Added useRef, useEffect
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChefHat, Store, Settings, SplitSquareVertical, RotateCcw, Palette, Check } from 'lucide-react';
 import { THEME_PRESETS } from '../../utils/theme';
@@ -100,12 +100,16 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
             <div className="bg-neutral-900/90 backdrop-blur-md border border-neutral-700 p-1.5 rounded-full shadow-2xl flex items-center gap-1 animate-in slide-in-from-bottom-10 duration-500">
                 {tabs.map((tab) => {
                     const isActive = location.pathname === tab.path;
+
+                    // UPDATED: Hide 'split' view button on small screens (mobile)
+                    const displayClass = tab.id === 'split' ? 'hidden md:flex' : 'flex';
+
                     return (
                         <button
                             key={tab.id}
                             onClick={() => navigate(tab.path)}
                             className={`
-                                flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all
+                                ${displayClass} items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all
                                 ${isActive
                                     ? 'bg-white text-black shadow-lg scale-105'
                                     : 'text-neutral-400 hover:text-white hover:bg-white/10'
