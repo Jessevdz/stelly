@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 
 # --- HIGH FIDELITY DEMO DATA ---
 DEMO_TENANT_SEED = {
-    "name": "Omni Demo Bistro",
+    "name": "Bistro Stelly",
     "domain": settings.DEMO_DOMAIN,
     "schema_name": settings.DEMO_SCHEMA,
     "theme_config": {
-        "preset": "mono-luxe",
+        "preset": "stelly",
         "primary_color": "#000000",
         "font_family": "Inter",
         "address": "101 Demo Lane, Tech City",
@@ -36,7 +36,7 @@ DEMO_TENANT_SEED = {
     },
     "categories": [
         {
-            "name": "Chef's Signatures",
+            "name": "Specialiteiten",
             "rank": 0,
             "items": [
                 {
@@ -71,7 +71,7 @@ DEMO_TENANT_SEED = {
                     "name": "Miso Glazed Salmon",
                     "desc": "Sustainably sourced Atlantic salmon, forbidden rice, sesame cucumber salad, and a ginger-soy reduction.",
                     "price": 2400,
-                    "img": "https://images.unsplash.com/photo-1467003909585-2f8a7270028d?auto=format&fit=crop&w=800&q=80",
+                    "img": "https://images.unsplash.com/photo-1759502832625-a6ce1d780dde?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
                     "modifiers": [],
                 },
                 {
@@ -84,7 +84,7 @@ DEMO_TENANT_SEED = {
             ],
         },
         {
-            "name": "Shareables & Sides",
+            "name": "Hoofdgerechten",
             "rank": 1,
             "items": [
                 {
@@ -98,7 +98,7 @@ DEMO_TENANT_SEED = {
                     "name": "Parmesan Truffle Fries",
                     "desc": "Hand-cut kennebec potatoes, tossed in white truffle oil and herbs.",
                     "price": 900,
-                    "img": "https://images.unsplash.com/photo-1573080496987-a199f8cd4054?auto=format&fit=crop&w=800&q=80",
+                    "img": "https://plus.unsplash.com/premium_photo-1672498329467-b27e2a97d29b?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
                     "modifiers": [
                         {
                             "name": "Dipping Sauces",
@@ -122,7 +122,7 @@ DEMO_TENANT_SEED = {
             ],
         },
         {
-            "name": "Craft Refreshments",
+            "name": "Dranken",
             "rank": 2,
             "items": [
                 {
@@ -136,7 +136,7 @@ DEMO_TENANT_SEED = {
                     "name": "Cold Brew Nitro",
                     "desc": "Single-origin beans steeped for 24 hours, infused with nitrogen for a creamy texture.",
                     "price": 550,
-                    "img": "https://images.unsplash.com/photo-1517701604599-bb29b5c73311?auto=format&fit=crop&w=800&q=80",
+                    "img": "https://images.unsplash.com/photo-1558122104-355edad709f6?q=80&w=1528&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
                     "modifiers": [
                         {
                             "name": "Milk Options",

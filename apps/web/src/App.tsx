@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useOutletContext } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
@@ -7,7 +7,7 @@ import { CartProvider } from './context/CartContext';
 import { StoreLayout } from './layouts/StoreLayout';
 import { PlatformLayout } from './layouts/PlatformLayout';
 import { TenantLayout } from './layouts/TenantLayout';
-import { DemoLayout } from './layouts/DemoLayout';
+import { DemoLayout, DemoContextType } from './layouts/DemoLayout';
 
 // Public Store Pages
 import { MenuPage } from './components/store/MenuPage';
@@ -29,7 +29,18 @@ import { KitchenDisplay } from './pages/kitchen/KitchenDisplay';
 
 // Demo Pages
 import { SplitView } from './pages/demo/SplitView';
-import { LandingPage } from './pages/demo/LandingPage'; // <--- Import
+import { LandingPage } from './pages/demo/LandingPage';
+
+// --- ADAPTER COMPONENT ---
+// Bridges the DemoContext (theme override) to the StoreLayout props
+function DemoStoreAdapter() {
+    const { config } = useOutletContext<DemoContextType>();
+    return (
+        <div className="h-full w-full bg-white overflow-y-auto">
+            <StoreLayout overrideConfig={config} />
+        </div>
+    );
+}
 
 function App() {
     // Helper to determine if we are on the dedicated demo domain
@@ -93,11 +104,8 @@ function App() {
                             <Route index element={<Navigate to="split" replace />} />
                             <Route path="split" element={<SplitView />} />
 
-                            <Route path="store" element={
-                                <div className="h-full w-full bg-white overflow-y-auto">
-                                    <StoreLayout />
-                                </div>
-                            }>
+                            {/* UPDATED: Use Adapter to inject Demo Context */}
+                            <Route path="store" element={<DemoStoreAdapter />}>
                                 <Route index element={<MenuPage />} />
                             </Route>
 

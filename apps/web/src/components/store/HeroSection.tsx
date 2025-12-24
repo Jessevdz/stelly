@@ -99,7 +99,7 @@ export const HeroSection: React.FC<HeroProps> = ({
     const layoutMode = {
         'mono-luxe': 'centered',
         'fresh-market': 'split',
-        'stelly': 'split',
+        'stelly': 'split', // Using split, but style tweaks below handle the transparency
         'tech-ocean': 'banner'
     }[preset] || 'centered';
 
@@ -170,22 +170,21 @@ export const HeroSection: React.FC<HeroProps> = ({
                 </div>
             )}
 
-            {/* --- LAYOUT B: Split (Fresh Market) --- 
+            {/* --- LAYOUT B: Split (Fresh Market & Stelly) --- 
                 Friendly, informative, storytelling focus. */}
             {layoutMode === 'split' && (
-                <div className="relative w-full bg-[var(--color-bg-app)] pt-12 md:pt-20 pb-12 px-6 overflow-hidden">
+                <div className={`relative w-full pt-12 md:pt-20 pb-12 px-6 overflow-hidden ${preset === 'stelly' ? 'bg-transparent' : 'bg-[var(--color-bg-app)]'}`}>
                     <div className="max-w-screen-xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                         {/* Left: Content */}
                         <div className="order-2 md:order-1 space-y-6 z-10">
-                            <StatusBadge />
 
                             <h1 className="text-4xl md:text-6xl font-bold font-heading text-text-main leading-[1.1] case-brand">
-                                Welcome to <br />
+                                Welkom bij <br />
                                 <span className="text-primary">{name}</span>
                             </h1>
 
                             <p className="text-lg text-text-muted max-w-md leading-relaxed">
-                                We believe in fresh ingredients, local sourcing, and food that makes you feel good. Order online or visit us today.
+                                Wij geloven in verse ingredienten en lekker eten! Bestel online of bezoek ons vandaag.
                             </p>
 
                             <div className="flex gap-4 pt-4">
@@ -193,33 +192,26 @@ export const HeroSection: React.FC<HeroProps> = ({
                                     size="lg"
                                     onClick={() => document.getElementById('cat-list')?.scrollIntoView({ behavior: 'smooth' })}
                                 >
-                                    Order Now <ArrowRight size={18} />
+                                    Bestel Nu <ArrowRight size={18} />
                                 </BrandButton>
                                 <BrandButton
                                     variant="ghost"
                                     icon={<Info size={18} />}
                                     onClick={() => setShowInfo(true)}
                                 >
-                                    Store Details
+                                    Details
                                 </BrandButton>
-                            </div>
-
-                            {/* Trust signals */}
-                            <div className="pt-6 flex items-center gap-6 text-sm font-bold text-text-muted opacity-80">
-                                <span className="flex items-center gap-2"><MapPin size={16} /> Local Favorite</span>
-                                <span className="flex items-center gap-2"><Calendar size={16} /> Open 7 Days</span>
                             </div>
                         </div>
 
                         {/* Right: Organic Shape Image */}
                         <div className="order-1 md:order-2 relative">
-                            <div className="aspect-[4/3] rounded-[var(--radius-lg)] overflow-hidden shadow-depth rotate-1 hover:rotate-0 transition-transform duration-500 z-10 relative">
+                            <div className={`aspect-[4/3] rounded-[var(--radius-lg)] overflow-hidden shadow-depth rotate-1 hover:rotate-0 transition-transform duration-500 z-10 relative ${preset === 'stelly' ? 'border border-gray-200 shadow-2xl' : ''}`}>
                                 <img src={bgImage} className="w-full h-full object-cover" alt="Hero" />
 
                                 {/* Overlay Card */}
                                 <div className="absolute bottom-4 left-4 bg-surface/90 backdrop-blur-md p-4 rounded-[var(--radius-md)] shadow-lg max-w-[200px] border border-border">
-                                    <p className="text-xs font-bold text-primary uppercase mb-1">Today's Special</p>
-                                    <p className="text-sm font-semibold text-text-main">Seasonal Harvest Bowl</p>
+                                    <p className="text-xs font-bold text-primary uppercase mb-1">Suggestie van de dag</p>
                                 </div>
                             </div>
 

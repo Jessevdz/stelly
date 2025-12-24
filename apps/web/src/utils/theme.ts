@@ -3,28 +3,28 @@ import React from 'react';
 // Extended Token System for "Vibe" Control
 export const THEME_PRESETS: Record<string, React.CSSProperties> = {
     'stelly': {
-        // Base Colors - Electric Blue Core
+        // Base Colors - Electric Blue Core (Matches Landing Page)
         '--color-primary': '#2563EB', // Blue 600
         '--color-primary-contrast': '#FFFFFF',
-        '--color-secondary': '#3B82F6', // Blue 500
+        '--color-secondary': '#4F46E5', // Indigo 600
 
-        // Backgrounds - Cool Blue Tint
-        '--color-bg-app': '#EFF6FF', // Blue 50
+        // Backgrounds - Clean White (Matches Landing Page)
+        '--color-bg-app': '#FFFFFF',
         '--color-bg-surface': '#FFFFFF',
 
-        // Typography & Text
+        // Typography & Text - Slate Scale
         '--color-text-main': '#0F172A', // Slate 900
-        '--color-text-muted': '#475569', // Slate 600
+        '--color-text-muted': '#64748B', // Slate 500
         '--font-heading-case': 'none',
-        '--font-heading-weight': '700',
+        '--font-heading-weight': '800', // Extra bold headings
 
         // Shapes & Texture
-        '--color-border': '#BFDBFE', // Blue 200 (Distinct electric borders)
+        '--color-border': '#E2E8F0', // Slate 200
         '--radius-sm': '0.5rem',
-        '--radius-md': '0.75rem',
-        '--radius-lg': '1rem',
-        '--shadow-depth': '0 10px 15px -3px rgba(37, 99, 235, 0.1), 0 4px 6px -2px rgba(37, 99, 235, 0.05)', // Electric blue tinted shadow
-        '--glass-blur': '0px',
+        '--radius-md': '1rem',
+        '--radius-lg': '1.5rem', // Rounded corners like the mockups
+        '--shadow-depth': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        '--glass-blur': '8px',
         '--overlay-opacity': '0.05',
     } as React.CSSProperties,
 
