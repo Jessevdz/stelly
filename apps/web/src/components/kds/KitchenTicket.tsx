@@ -29,12 +29,22 @@ export const KitchenTicket: React.FC<KitchenTicketProps> = ({ order, onStatusCha
     const [elapsed, setElapsed] = useState(0);
 
     useEffect(() => {
-        const startTime = new Date(order.created_at).getTime();
+        // FIX: Force UTC interpretation.
+        // Backend sends "2023-10-25T10:00:00" (Naive UTC).
+        // Browser parses as Local Time. If you are in UTC+1, diff is 1 hour immediately.
+        // Appending 'Z' forces the browser to treat the string as UTC.
+        const dateStr = order.created_at.endsWith('Z')
+            ? order.created_at
+            : `${order.created_at}Z`;
+
+        const startTime = new Date(dateStr).getTime();
+
         const updateTimer = () => {
             const now = new Date().getTime();
             const diffInSeconds = Math.floor((now - startTime) / 1000);
             setElapsed(diffInSeconds > 0 ? diffInSeconds : 0);
         };
+
         updateTimer();
         const interval = setInterval(updateTimer, 1000);
         return () => clearInterval(interval);
