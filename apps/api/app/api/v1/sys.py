@@ -7,9 +7,14 @@ from app.db.session import get_db, engine
 from app.db.models import (
     Tenant,
     Lead,
+    ContactRequest,
     Category,
-)  # Added Category for context check if needed
-from app.schemas.provision import TenantCreateRequest, TenantResponse
+)
+from app.schemas.provision import (
+    TenantCreateRequest,
+    TenantResponse,
+    ContactFormRequest,
+)
 from app.api.v1.deps import get_current_user
 from app.core.config import settings
 from app.core.security import create_access_token
@@ -246,3 +251,24 @@ def reset_demo_data(
         )
 
     return {"message": "Environment reset successfully."}
+
+
+@router.post("/contact")
+def submit_contact_form(payload: ContactFormRequest, db: Session = Depends(get_db)):
+    """
+    Public endpoint to save contact requests (leads).
+    """
+    try:
+        # Ensure we write to public schema
+        db.execute(text("SET search_path TO public"))
+
+        new_request = ContactRequest(
+            name=payload.name, email=payload.email, business_name=payload.business_name
+        )
+        db.add(new_request)
+        db.commit()
+        return {"status": "success", "message": "Contact request received"}
+    except Exception as e:
+        db.rollback()
+        print(f"Contact Form Error: {e}")
+        raise HTTPException(status_code=500, detail="Could not save request")

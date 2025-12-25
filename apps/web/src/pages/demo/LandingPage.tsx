@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Hexagon,
@@ -13,8 +13,121 @@ import {
     ShieldCheck,
     MousePointerClick,
     Check,
-    Circle, Square
+    Circle, Square,
+    Building2,
+    Mail,
+    Send,
+    User
 } from 'lucide-react';
+
+// --- LEAD CAPTURE COMPONENT ---
+const LeadCaptureForm = () => {
+    const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+    const [formData, setFormData] = useState({ name: '', email: '', business: '' });
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.email) return;
+
+        setStatus('submitting');
+
+        try {
+            const res = await fetch('/api/v1/sys/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: formData.name,
+                    email: formData.email,
+                    business_name: formData.business
+                })
+            });
+
+            if (res.ok) {
+                setStatus('success');
+                setFormData({ name: '', email: '', business: '' });
+            } else {
+                setStatus('error');
+            }
+        } catch (e) {
+            console.error(e);
+            setStatus('error');
+        }
+    };
+
+    if (status === 'success') {
+        return (
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center animate-in zoom-in-95 duration-300">
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-green-800 mb-2">Bedankt!</h3>
+                <p className="text-green-700">We hebben je gegevens ontvangen.</p>
+                <button
+                    onClick={() => setStatus('idle')}
+                    className="mt-6 text-sm text-green-600 hover:text-green-800 font-bold underline"
+                >
+                    Nog een aanvraag versturen
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-xl shadow-slate-200/40 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-16 -mt-16 z-0" />
+
+            <div className="relative z-10">
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">Samenwerken?</h3>
+                <p className="text-slate-500 mb-6">Laat je gegevens achter voor een vrijblijvend gesprek.</p>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="relative group">
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
+                        <input
+                            type="text"
+                            placeholder="Jouw Naam"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-slate-900 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
+                            value={formData.name}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        />
+                    </div>
+
+                    <div className="relative group">
+                        <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
+                        <input
+                            type="text"
+                            placeholder="Naam van de zaak"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-slate-900 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
+                            value={formData.business}
+                            onChange={e => setFormData({ ...formData, business: e.target.value })}
+                        />
+                    </div>
+
+                    <div className="relative group">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
+                        <input
+                            type="email"
+                            required
+                            placeholder="E-mailadres"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-slate-900 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
+                            value={formData.email}
+                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={status === 'submitting'}
+                        className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                    >
+                        {status === 'submitting' ? 'Versturen...' : 'Versturen'}
+                        {!status && <Send size={18} />}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
 
 export const LandingPage = () => {
     const navigate = useNavigate();
@@ -67,6 +180,12 @@ export const LandingPage = () => {
                         <StellyLogo />
                     </div>
                     <div className="flex items-center gap-6">
+                        <button
+                            onClick={() => document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' })}
+                            className="text-slate-500 hover:text-slate-900 font-medium text-sm hidden md:block transition-colors"
+                        >
+                            Contact
+                        </button>
                         <button
                             onClick={handleStartDemo}
                             className="bg-slate-900 text-white text-sm font-bold px-5 py-2.5 rounded-full hover:bg-blue-600 transition-all active:scale-95 shadow-lg shadow-slate-900/10 hover:shadow-blue-600/20"
@@ -329,18 +448,32 @@ export const LandingPage = () => {
                 {/* --- Final CTA --- */}
                 <section className="pt-24 pb-12 text-center">
                     <div className="max-w-3xl mx-auto px-6">
-                        <h2 className="text-4xl font-bold mb-6 text-slate-900">Klaar om te moderniseren?</h2>
-                        <button
-                            onClick={handleStartDemo}
-                            className="bg-blue-600 text-white font-bold px-10 py-4 rounded-full text-lg hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-600/20"
-                        >
-                            Lanceer De Demo
-                        </button>
+
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+
+                            {/* Left: Standard Demo CTA */}
+                            <div className="text-center md:text-left">
+                                <h2 className="text-4xl font-bold mb-6 text-slate-900">Klaar om te moderniseren?</h2>
+                                <button
+                                    onClick={handleStartDemo}
+                                    className="bg-blue-600 text-white font-bold px-10 py-4 rounded-full text-lg hover:bg-blue-700 transition-all active:scale-95 shadow-xl shadow-blue-600/20"
+                                >
+                                    Lanceer De Demo
+                                </button>
+                            </div>
+
+                            {/* Right: Lead Capture Form */}
+                            <div>
+                                <LeadCaptureForm />
+                            </div>
+
+                        </div>
                     </div>
                 </section>
 
                 {/* --- Footer --- */}
-                <footer className="pt-16 pb-10 text-center border-t border-slate-100 bg-white">
+                <footer className="pt-16 pb-10 text-center border-t border-slate-200 bg-white">
                     <div className="flex items-center justify-center gap-2 mb-6 opacity-80">
                         <StellyLogo />
                     </div>

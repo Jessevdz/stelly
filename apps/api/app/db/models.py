@@ -41,6 +41,18 @@ class Lead(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+# Contact Request Model
+class ContactRequest(Base):
+    __tablename__ = "contact_requests"
+    __table_args__ = {"schema": "public"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    business_name = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 # --- TENANT SCHEMA MODELS ---
 # (Keep User, Category, MenuItem, ModifierGroup, ModifierOption, Order exactly as they were)
 class User(Base):

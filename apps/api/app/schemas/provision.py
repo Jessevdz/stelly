@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 
 class TenantCreateRequest(BaseModel):
@@ -13,3 +14,9 @@ class TenantResponse(BaseModel):
     id: str
     schema_name: str
     message: str
+
+
+class ContactFormRequest(BaseModel):
+    name: str
+    email: EmailStr
+    business_name: Optional[str] = None
