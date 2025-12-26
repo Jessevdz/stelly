@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
     Upload, Image as ImageIcon, Loader2, ArrowUp, ArrowDown,
-    Pencil, Trash2, Plus, X, Save, AlertCircle, Eye, Layout
+    Pencil, Trash2, Plus, X, Save, Eye
 } from 'lucide-react';
 
 // Types matching backend
@@ -165,14 +165,6 @@ export function MenuBuilder() {
         } catch (e) { alert("Mislukt"); }
     };
 
-    // --- Simple reorder logic for items ---
-    const handleReorderItem = async (catId: string, itemId: string, dir: 'up' | 'down') => {
-        // ... (Keep existing logic or simplify for brevity)
-        // For brevity in this fix, assuming previous logic holds.
-        // Calling refresh for simplicity:
-        fetchData();
-    };
-
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -219,9 +211,9 @@ export function MenuBuilder() {
             <div
                 id="editor-panel"
                 className={`
-                    w-full md:w-[450px] bg-white border-r border-gray-200 flex flex-col shadow-xl z-10 overflow-y-auto transition-transform
-                    ${mobileView === 'editor' ? 'block' : 'hidden md:flex'}
-                `}
+          w-full md:w-[450px] bg-white border-r border-gray-200 flex flex-col shadow-xl z-10 overflow-y-auto transition-transform
+          ${mobileView === 'editor' ? 'block' : 'hidden md:flex'}
+        `}
             >
                 <div className="p-6 pb-24 md:pb-6"> {/* Extra padding bottom for mobile fab */}
                     <h2 className="text-2xl font-bold text-gray-800 mb-6">Menu Editor</h2>
@@ -370,9 +362,9 @@ export function MenuBuilder() {
 
             {/* RIGHT: Live Preview & Management List */}
             <div className={`
-                flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50
-                ${mobileView === 'preview' ? 'block' : 'hidden md:block'}
-            `}>
+        flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50
+        ${mobileView === 'preview' ? 'block' : 'hidden md:block'}
+      `}>
                 <div className="max-w-3xl mx-auto pb-24 md:pb-0">
                     <div className="flex items-center gap-2 mb-6">
                         <h1 className="text-2xl font-bold text-gray-800">Menu Preview</h1>

@@ -8,10 +8,17 @@ interface Category {
 interface CategoryNavProps {
     categories: Category[];
     activeCategory?: string;
+    onCategorySelect?: (id: string) => void;
 }
 
-export const CategoryNav: React.FC<CategoryNavProps> = ({ categories, activeCategory }) => {
+export const CategoryNav: React.FC<CategoryNavProps> = ({ categories, activeCategory, onCategorySelect }) => {
     const scrollToCategory = (id: string) => {
+        // 1. Trigger parent callback (to pause scroll spy)
+        if (onCategorySelect) {
+            onCategorySelect(id);
+        }
+
+        // 2. Perform Scroll
         const element = document.getElementById(`cat-${id}`);
         if (element) {
             // FIX: Use scrollIntoView instead of window.scrollTo
@@ -28,11 +35,11 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({ categories, activeCate
                         key={cat.id}
                         onClick={() => scrollToCategory(cat.id)}
                         className={`
-                            px-5 py-2 rounded-full text-sm font-bold tracking-wide transition-all duration-200 active:scale-95 border
-                            ${activeCategory === cat.id
+              px-5 py-2 rounded-full text-sm font-bold tracking-wide transition-all duration-200 active:scale-95 border
+              ${activeCategory === cat.id
                                 ? 'bg-primary text-primary-fg border-primary shadow-md shadow-primary/20 scale-105'
                                 : 'bg-transparent text-text-muted border-transparent hover:bg-gray-100 hover:text-text-main'}
-                        `}
+            `}
                     >
                         {cat.name}
                     </button>

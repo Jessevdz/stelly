@@ -3,19 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import {
     Hexagon,
     ArrowRight,
-    Smartphone,
     ChefHat,
     Globe,
     Percent,
     BarChart3,
     Zap,
     CheckCircle2,
-    MousePointerClick,
     Check,
     Building2,
     Mail,
     Send,
-    User
+    User,
+    PhoneOff,
+    ShoppingBag
 } from 'lucide-react';
 import { trackEvent } from '../../utils/analytics';
 
@@ -182,12 +182,6 @@ export const LandingPage = () => {
                     </div>
                     <div className="flex items-center gap-6">
                         <button
-                            onClick={() => document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' })}
-                            className="text-slate-500 hover:text-slate-900 font-medium text-sm hidden md:block transition-colors"
-                        >
-                            Contact
-                        </button>
-                        <button
                             onClick={handleStartDemo}
                             className="bg-slate-900 text-white text-sm font-bold px-5 py-2.5 rounded-full hover:bg-blue-600 transition-all active:scale-95 shadow-lg shadow-slate-900/10 hover:shadow-blue-600/20"
                         >
@@ -208,7 +202,7 @@ export const LandingPage = () => {
                     </h1>
 
                     <p className="text-xl text-slate-500 font-normal mb-10 max-w-2xl mx-auto leading-relaxed animate-in slide-in-from-bottom-6 duration-700 delay-100">
-                        Zet jouw horecazaak onmiddellijk online. Geen vaste kosten, geen technische kennis nodig.
+                        Zet jouw horecazaak onmiddellijk online. Geen rinkelende telefoons of vergeten e-mails meer. Gewoon koken en inpakken.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in slide-in-from-bottom-8 duration-700 delay-200">
@@ -299,22 +293,21 @@ export const LandingPage = () => {
                             </h2>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
-                                {/* Benefit 1 */}
+
                                 <div className="flex gap-4">
                                     <div className="shrink-0">
-                                        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                                            <Smartphone size={24} />
+                                        <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
+                                            <Globe size={24} />
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Geoptimaliseerd voor Smartphones</h3>
+                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Direct Online</h3>
                                         <p className="text-slate-500 text-sm leading-relaxed">
-                                            Je klanten moeten geen app downloaden. Je menu ziet er prachtig uit op elke smartphone.
+                                            Nog geen website? Wij zetten je zaak onmiddellijk op de kaart met je eigen domeinnaam.
                                         </p>
                                     </div>
                                 </div>
 
-                                {/* Benefit 2 */}
                                 <div className="flex gap-4">
                                     <div className="shrink-0">
                                         <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
@@ -329,7 +322,34 @@ export const LandingPage = () => {
                                     </div>
                                 </div>
 
-                                {/* Benefit 3 */}
+                                <div className="flex gap-4">
+                                    <div className="shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
+                                            <PhoneOff size={24} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Weg met de telefoon</h3>
+                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                            Geen onderbrekingen meer tijdens de service. Laat klanten digitaal bestellen en krijg rust in de zaak.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <div className="shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                                            <ShoppingBag size={24} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Puur Afhaal, Geen Delivery</h3>
+                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                            Geen gedoe met koeriers of koude maaltijden. Stelly is voor klanten die zelf komen afhalen.
+                                        </p>
+                                    </div>
+                                </div>
+
                                 <div className="flex gap-4">
                                     <div className="shrink-0">
                                         <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
@@ -344,7 +364,6 @@ export const LandingPage = () => {
                                     </div>
                                 </div>
 
-                                {/* Benefit 4 */}
                                 <div className="flex gap-4">
                                     <div className="shrink-0">
                                         <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
@@ -355,36 +374,6 @@ export const LandingPage = () => {
                                         <h3 className="font-bold text-slate-900 text-lg mb-1">Gratis Analytics</h3>
                                         <p className="text-slate-500 text-sm leading-relaxed">
                                             Inzichten in je piekuren en best verkopende producten, standaard inbegrepen.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Benefit 5 */}
-                                <div className="flex gap-4">
-                                    <div className="shrink-0">
-                                        <div className="w-12 h-12 rounded-xl bg-pink-50 flex items-center justify-center text-pink-600">
-                                            <MousePointerClick size={24} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Brand Customization</h3>
-                                        <p className="text-slate-500 text-sm leading-relaxed">
-                                            Jouw logo, jouw kleuren. Pas de look & feel aan zodat het past bij jouw zaak.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Benefit 6 */}
-                                <div className="flex gap-4">
-                                    <div className="shrink-0">
-                                        <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
-                                            <Globe size={24} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-900 text-lg mb-1">Direct Online</h3>
-                                        <p className="text-slate-500 text-sm leading-relaxed">
-                                            Heb je nog geen website? Wij zetten je onmiddellijk op de kaart.
                                         </p>
                                     </div>
                                 </div>
