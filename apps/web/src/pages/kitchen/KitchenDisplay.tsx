@@ -191,13 +191,11 @@ export function KitchenDisplay() {
     }
 
     return (
-        <div className="h-screen bg-[#121212] text-gray-100 font-sans flex flex-col overflow-hidden">
+        <div className="h-full bg-[#121212] text-gray-100 font-sans flex flex-col overflow-hidden">
             <header className="bg-neutral-900 border-b border-gray-800 p-4 flex justify-between items-center h-16 shadow-md shrink-0">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-bold tracking-wider text-gray-200">
-                        KEUKEN
-                    </h1>
-                    <span className="bg-gray-800 text-gray-400 px-3 py-1 rounded text-sm font-mono border border-gray-700">
+                    <h1 className="text-xl font-bold tracking-wider text-gray-200">KEUKEN</h1>
+                    <span className="hidden md:inline bg-gray-800 text-gray-400 px-3 py-1 rounded text-sm font-mono border border-gray-700">
                         {config.name}
                     </span>
                 </div>
@@ -218,18 +216,24 @@ export function KitchenDisplay() {
                 </div>
             </header>
 
-            <main className="flex-1 p-4 overflow-hidden">
+            <main className="flex-1 p-2 md:p-4 overflow-hidden">
                 {loading ? (
                     <div className="h-full flex items-center justify-center">
                         <Loader2 className="animate-spin text-gray-600" size={48} />
                     </div>
                 ) : (
-                    <div className="grid grid-cols-4 gap-4 h-full">
+                    // RESPONSIVE GRID CONFIGURATION
+                    // Mobile: Flex row with horizontal scrolling + Snap behavior
+                    // Desktop: 4 Column Grid
+                    <div className="flex flex-row overflow-x-auto snap-x snap-mandatory gap-4 h-full md:grid md:grid-cols-4 md:overflow-hidden pb-4 md:pb-0">
                         {LANES.map(lane => {
                             const laneOrders = orders.filter(o => o.status === lane.id);
 
                             return (
-                                <div key={lane.id} className="flex flex-col h-full bg-neutral-900/50 rounded-lg border border-gray-800">
+                                <div
+                                    key={lane.id}
+                                    className="flex flex-col h-full bg-neutral-900/50 rounded-lg border border-gray-800 min-w-[85vw] md:min-w-0 snap-center"
+                                >
                                     <div className={`p-3 border-b-2 ${lane.color} bg-neutral-900 flex justify-between items-center sticky top-0`}>
                                         <h2 className="font-bold uppercase tracking-wider text-sm text-gray-300">{lane.label}</h2>
                                         <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-full font-mono">

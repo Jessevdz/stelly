@@ -9,13 +9,22 @@ interface WelcomeOverlayProps {
 }
 
 export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ currentStep, onStepChange, onComplete }) => {
-    // Determine positioning based on step to avoid covering the spotlighted area
-    const positionClasses = {
-        0: 'items-center justify-center', // Center
-        1: 'items-center justify-end pr-20', // Right side (looking at Left)
-        2: 'items-center justify-start pl-20', // Left side (looking at Right)
-        3: 'items-center justify-center' // Center
-    }[currentStep];
+
+    // Check if mobile
+    const isMobile = window.innerWidth < 768;
+
+    // Mobile Logic: Always center bottom
+    // Desktop Logic: Spatial positioning
+    const getPositionClasses = () => {
+        if (isMobile) return 'items-end justify-center pb-24'; // Bottom center on mobile
+
+        switch (currentStep) {
+            case 0: return 'items-center justify-center';
+            case 1: return 'items-center justify-end pr-20';
+            case 2: return 'items-center justify-start pl-20';
+            default: return 'items-center justify-center';
+        }
+    };
 
     const content = [
         {
@@ -26,13 +35,17 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ currentStep, onS
         },
         {
             title: "Voor de Klant",
-            text: "Links zie de website van je zaak. Deze is volledig aanpasbaar: Het ontwerp, de menu, je openingsuren, enzovoort. Klanten gebruiken dit om bestellingen te plaatsen.",
+            text: isMobile
+                ? "Hier zie je de mobiele website. Klanten bestellen hiermee op hun smartphone."
+                : "Links zie de website van je zaak. Deze is volledig aanpasbaar. Klanten gebruiken dit om bestellingen te plaatsen.",
             icon: <Store size={48} className="text-green-500" />,
             action: "Volgende"
         },
         {
             title: "Voor de Keuken",
-            text: "Rechts zie je het bestelscherm voor de keuken. Alle bestellingen van de website komen hier onmiddellijk binnen. De keuken organiseert en voltooit de bestellingen hier.",
+            text: isMobile
+                ? "We switchen nu naar het keukenscherm. Bestellingen komen hier live binnen."
+                : "Rechts zie je het bestelscherm voor de keuken. Alle bestellingen van de website komen hier onmiddellijk binnen.",
             icon: <ChefHat size={48} className="text-orange-500" />,
             action: "Volgende"
         },
@@ -47,15 +60,15 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ currentStep, onS
     const stepData = content[currentStep];
 
     return (
-        <div className={`fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm transition-all duration-500 flex ${positionClasses}`}>
-            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md animate-in fade-in zoom-in-95 duration-300 mx-4 border border-white/20">
+        <div className={`fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm transition-all duration-500 flex ${getPositionClasses()}`}>
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300 mx-4 border border-white/20">
                 <div className="flex flex-col items-center text-center space-y-4">
                     <div className="bg-gray-50 p-4 rounded-full mb-2">
                         {stepData.icon}
                     </div>
 
-                    <h2 className="text-3xl font-bold text-gray-900 font-heading">{stepData.title}</h2>
-                    <p className="text-gray-600 leading-relaxed whitespace-pre-line">{stepData.text}</p>
+                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 font-heading">{stepData.title}</h2>
+                    <p className="text-gray-600 leading-relaxed whitespace-pre-line text-sm md:text-base">{stepData.text}</p>
 
                     <div className="pt-4 w-full">
                         <BrandButton

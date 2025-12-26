@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChefHat, Store, Settings, SplitSquareVertical, RotateCcw, Palette, Check } from 'lucide-react';
+import { Settings, SplitSquareVertical, RotateCcw, Palette, Check } from 'lucide-react';
 import { THEME_PRESETS } from '../../utils/theme';
-import { trackEvent } from '../../utils/analytics'; // Import analytics helper
+import { trackEvent } from '../../utils/analytics';
 
 interface PersonaSwitcherProps {
     currentPreset: string;
@@ -14,10 +14,9 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
     const location = useLocation();
     const [showThemes, setShowThemes] = useState(false);
 
-    // 1. Create a ref for the container
+    // Ref for click-outside detection
     const switcherRef = useRef<HTMLDivElement>(null);
 
-    // 2. Add Click Outside Logic
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (switcherRef.current && !switcherRef.current.contains(event.target as Node)) {
@@ -25,7 +24,6 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
             }
         };
 
-        // Only add listener if menu is open
         if (showThemes) {
             document.addEventListener('mousedown', handleClickOutside);
         }
@@ -35,17 +33,9 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
         };
     }, [showThemes]);
 
-    const tabs = [
-        { id: 'split', label: 'Naast elkaar', path: '/demo/split', icon: SplitSquareVertical },
-        { id: 'store', label: 'Website', path: '/demo/store', icon: Store },
-        { id: 'kds', label: 'Keuken', path: '/demo/kitchen', icon: ChefHat },
-        { id: 'admin', label: 'Manager', path: '/demo/admin/dashboard', icon: Settings },
-    ];
-
     const handleReset = async () => {
-        if (!confirm("Reset Demo?")) return;
+        if (!confirm("Reset Demo? Dit wist alle bestellingen en reset het menu.")) return;
 
-        // TRACKING: Track reset action
         trackEvent('demo_reset', { from_path: location.pathname });
 
         const token = sessionStorage.getItem('demo_token');
@@ -62,17 +52,15 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
     };
 
     return (
-        // 3. Attach ref to the main wrapper
         <div
             ref={switcherRef}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-4"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] flex flex-col items-center gap-4 w-full max-w-sm px-4 md:w-auto"
         >
-
             {/* Theme Picker Popover (Appears Above) */}
             {showThemes && (
                 <div className="bg-white/90 backdrop-blur-md border border-gray-200 p-2 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 zoom-in-95 duration-200 mb-2 w-64">
                     <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 mb-1">
-                        Selecteer design:
+                        Selecteer Vibe:
                     </div>
                     <div className="space-y-1">
                         {Object.keys(THEME_PRESETS).map((key) => {
@@ -84,12 +72,10 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
                                 <button
                                     key={key}
                                     onClick={() => {
-                                        // TRACKING: Track theme change
                                         trackEvent('demo_theme_change', {
                                             preset: key,
                                             previous_preset: currentPreset
                                         });
-
                                         onPresetChange(key);
                                         setShowThemes(false);
                                     }}
@@ -108,72 +94,52 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
             )}
 
             {/* Main Navigation Pill */}
-            <div className="bg-neutral-900/90 backdrop-blur-md border border-neutral-700 p-1.5 rounded-full shadow-2xl flex items-center gap-1 animate-in slide-in-from-bottom-10 duration-500">
-                {tabs.map((tab) => {
-                    const isActive = location.pathname === tab.path;
+            <div className="bg-neutral-900/95 backdrop-blur-md border border-neutral-700 p-1.5 rounded-full shadow-2xl flex items-center justify-between w-full md:w-auto md:justify-center gap-1">
 
-                    // UPDATED: Hide 'split' view button on small screens (mobile)
-                    const displayClass = tab.id === 'split' ? 'hidden md:flex' : 'flex';
+                {/* Navigation Group */}
+                <div className="flex gap-1 flex-1 md:flex-none justify-center md:justify-start">
+                    <button
+                        onClick={() => navigate('/demo/split')}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${location.pathname === '/demo/split' ? 'bg-white text-black shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
+                    >
+                        <SplitSquareVertical size={18} />
+                        <span className="hidden md:inline">Demo</span>
+                    </button>
 
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => {
-                                // TRACKING: Track view switching
-                                trackEvent('demo_view_switch', {
-                                    view: tab.id,
-                                    path: tab.path
-                                });
+                    <button
+                        onClick={() => navigate('/demo/admin/dashboard')}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${location.pathname.includes('admin') ? 'bg-white text-black shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
+                    >
+                        <Settings size={18} />
+                        <span className="hidden md:inline">Manager</span>
+                    </button>
+                </div>
 
-                                navigate(tab.path);
-                            }}
-                            className={`
-                                ${displayClass} items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all
-                                ${isActive
-                                    ? 'bg-white text-black shadow-lg scale-105'
-                                    : 'text-neutral-400 hover:text-white hover:bg-white/10'
-                                }
-                            `}
-                        >
-                            <tab.icon size={18} />
-                            <span className="hidden md:inline">{tab.label}</span>
-                        </button>
-                    );
-                })}
+                {/* Vertical Divider */}
+                <div className="w-px h-6 bg-neutral-700 mx-1 shrink-0"></div>
 
-                {/* Divider */}
-                <div className="w-px h-6 bg-neutral-700 mx-2"></div>
+                {/* Actions Group */}
+                <div className="flex gap-1 flex-1 md:flex-none justify-center md:justify-start">
+                    <button
+                        onClick={() => {
+                            if (!showThemes) trackEvent('demo_theme_menu_open');
+                            setShowThemes(!showThemes);
+                        }}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${showThemes ? 'bg-blue-600 text-white shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
+                        title="Switch Brand Vibe"
+                    >
+                        <Palette size={18} />
+                        <span className="hidden md:inline">Vibe</span>
+                    </button>
 
-                {/* Theme Toggle */}
-                <button
-                    onClick={() => {
-                        // TRACKING: Track opening the theme menu
-                        if (!showThemes) {
-                            trackEvent('demo_theme_menu_open');
-                        }
-                        setShowThemes(!showThemes);
-                    }}
-                    className={`
-                        flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all
-                        ${showThemes
-                            ? 'bg-blue-600 text-white shadow-lg'
-                            : 'text-neutral-400 hover:text-white hover:bg-white/10'
-                        }
-                    `}
-                    title="Switch Brand Vibe"
-                >
-                    <Palette size={18} />
-                    <span className="hidden md:inline">Vibe</span>
-                </button>
-
-                {/* Reset Button */}
-                <button
-                    onClick={handleReset}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-full text-sm font-bold text-red-400 hover:text-white hover:bg-red-500/20 transition-all ml-1"
-                    title="Reset Demo Environment"
-                >
-                    <RotateCcw size={18} />
-                </button>
+                    <button
+                        onClick={handleReset}
+                        className="flex items-center justify-center w-10 h-10 rounded-full text-red-400 hover:text-white hover:bg-red-500/20 transition-all shrink-0"
+                        title="Reset Demo Environment"
+                    >
+                        <RotateCcw size={18} />
+                    </button>
+                </div>
             </div>
         </div>
     );
