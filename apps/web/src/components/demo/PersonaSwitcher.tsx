@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Settings, SplitSquareVertical, RotateCcw, Palette, Check } from 'lucide-react';
+import { Settings, SplitSquareVertical, RotateCcw, Palette, Check, Store, ChefHat } from 'lucide-react';
 import { THEME_PRESETS } from '../../utils/theme';
 import { trackEvent } from '../../utils/analytics';
 
@@ -51,10 +51,18 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
         window.location.href = '/demo/split';
     };
 
+    // Define the navigation tabs
+    const tabs = [
+        { id: 'split', label: 'Split', path: '/demo/split', icon: SplitSquareVertical, showOnMobile: false },
+        { id: 'store', label: 'Winkel', path: '/demo/store', icon: Store, showOnMobile: false },
+        { id: 'kitchen', label: 'Keuken', path: '/demo/kitchen', icon: ChefHat, showOnMobile: false },
+        { id: 'admin', label: 'Manager', path: '/demo/admin/dashboard', icon: Settings, showOnMobile: true },
+    ];
+
     return (
         <div
             ref={switcherRef}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] flex flex-col items-center gap-4 w-full max-w-sm px-4 md:w-auto"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] flex flex-col items-center gap-4 w-full max-w-sm px-4 md:w-auto md:max-w-none"
         >
             {/* Theme Picker Popover (Appears Above) */}
             {showThemes && (
@@ -98,25 +106,29 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
 
                 {/* Navigation Group */}
                 <div className="flex gap-1 flex-1 md:flex-none justify-center md:justify-start">
-                    <button
-                        onClick={() => navigate('/demo/split')}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${location.pathname === '/demo/split' ? 'bg-white text-black shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
-                    >
-                        <SplitSquareVertical size={18} />
-                        <span className="hidden md:inline">Demo</span>
-                    </button>
+                    {tabs.map(tab => {
+                        const isActive = location.pathname.startsWith(tab.path);
 
-                    <button
-                        onClick={() => navigate('/demo/admin/dashboard')}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${location.pathname.includes('admin') ? 'bg-white text-black shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
-                    >
-                        <Settings size={18} />
-                        <span className="hidden md:inline">Manager</span>
-                    </button>
+                        // "Split" and view buttons are hidden on mobile to avoid crowding, 
+                        // as SplitView handles its own internal mobile tabs.
+                        // Manager is always visible.
+                        const displayClass = tab.showOnMobile ? 'flex' : 'hidden md:flex';
+
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => navigate(tab.path)}
+                                className={`${displayClass} items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${isActive ? 'bg-white text-black shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
+                            >
+                                <tab.icon size={18} />
+                                <span className="hidden md:inline">{tab.label}</span>
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* Vertical Divider */}
-                <div className="w-px h-6 bg-neutral-700 mx-1 shrink-0"></div>
+                <div className="w-px h-6 bg-neutral-700 mx-1 shrink-0 hidden md:block"></div>
 
                 {/* Actions Group */}
                 <div className="flex gap-1 flex-1 md:flex-none justify-center md:justify-start">

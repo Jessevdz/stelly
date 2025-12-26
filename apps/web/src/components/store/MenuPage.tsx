@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react"; // Added useRef
 import { useOutletContext } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
@@ -46,19 +46,19 @@ export function MenuPage({ config: propConfig }: MenuPageProps) {
     const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // Ref to prevent observer loops if user clicks nav manually
+    const isManualScroll = useRef(false);
+
     const presetName = config.preset || 'mono-luxe';
 
     // 3. Data Fetching
     useEffect(() => {
-        // <--- 3. Prepare Headers
         const headers: HeadersInit = {};
         if (token) {
-            // This header tells the backend to look at the specific 'demo_xyz' schema
-            // instead of the generic read-only demo schema.
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        fetch('/api/v1/store/menu', { headers }) // <--- 4. Pass Headers
+        fetch('/api/v1/store/menu', { headers })
             .then(res => res.json())
             .then(data => {
                 setCategories(data);
@@ -69,9 +69,40 @@ export function MenuPage({ config: propConfig }: MenuPageProps) {
                 console.error(err);
                 setLoading(false);
             });
-    }, [token]); // <--- 5. Add token to dependency array
+    }, [token]);
 
-    // ... (Rest of the file remains exactly the same: Scroll Spy, Handlers, Render) ...
+    // --- NEW: Scroll Spy Logic ---
+    useEffect(() => {
+        if (loading || categories.length === 0) return;
+
+        const observerOptions = {
+            root: null,
+            // rootMargin defines the "active area". 
+            // -100px from top accounts for the sticky header.
+            // -60% from bottom means we only care about the top 40% of the screen.
+            rootMargin: '-100px 0px -60% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            // If we are scrolling via click, ignore observer updates briefly
+            if (isManualScroll.current) return;
+
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id.replace('cat-', '');
+                    setActiveCategory(id);
+                }
+            });
+        }, observerOptions);
+
+        categories.forEach((cat) => {
+            const element = document.getElementById(`cat-${cat.id}`);
+            if (element) observer.observe(element);
+        });
+
+        return () => observer.disconnect();
+    }, [loading, categories]);
 
     // 4. Interaction Handlers
     const handleItemClick = (item: any) => {
@@ -83,6 +114,13 @@ export function MenuPage({ config: propConfig }: MenuPageProps) {
         for (let i = 0; i < qty; i++) {
             addToCart(item);
         }
+    };
+
+    // Callback passed to CategoryNav to signal manual navigation
+    const onCategoryClick = (id: string) => {
+        setActiveCategory(id);
+        isManualScroll.current = true;
+        setTimeout(() => { isManualScroll.current = false; }, 800);
     };
 
     // 5. Loading State
@@ -109,7 +147,11 @@ export function MenuPage({ config: propConfig }: MenuPageProps) {
         <>
             <HeroSection name={config.name} preset={presetName} />
 
-            <CategoryNav categories={categories} activeCategory={activeCategory} />
+            <CategoryNav
+                categories={categories}
+                activeCategory={activeCategory}
+                onCategorySelect={onCategoryClick} // Pass the handler
+            />
 
             <div id="cat-list" className="max-w-screen-xl mx-auto px-4 py-8 md:px-8 scroll-mt-24">
                 {categories.map((cat) => {
