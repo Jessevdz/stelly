@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Settings, SplitSquareVertical, RotateCcw, Palette, Check, Store, ChefHat } from 'lucide-react';
+import { Settings, SplitSquareVertical, RotateCcw, Palette, Check, Store, ChefHat, X, Menu } from 'lucide-react';
 import { THEME_PRESETS } from '../../utils/theme';
 import { trackEvent } from '../../utils/analytics';
 
@@ -13,6 +13,9 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
     const navigate = useNavigate();
     const location = useLocation();
     const [showThemes, setShowThemes] = useState(false);
+
+    // Default to minimized on mobile to prevent immediate obstruction
+    const [isMinimized, setIsMinimized] = useState(() => window.innerWidth < 768);
 
     // Ref for click-outside detection
     const switcherRef = useRef<HTMLDivElement>(null);
@@ -59,14 +62,29 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
         { id: 'admin', label: 'Manager', path: '/demo/admin/dashboard', icon: Settings, showOnMobile: true },
     ];
 
+    // --- Minimized State (Small Floating Button) ---
+    if (isMinimized) {
+        return (
+            <button
+                onClick={() => setIsMinimized(false)}
+                // UPDATED: Added md:bottom-8 md:left-8 for more breathing room on desktop
+                className="fixed bottom-4 left-4 md:bottom-8 md:left-8 z-[150] w-12 h-12 bg-neutral-900 text-white rounded-full shadow-xl border border-neutral-700 flex items-center justify-center hover:bg-neutral-800 transition-all hover:scale-105 active:scale-95 animate-in slide-in-from-left-10 duration-300"
+                title="Open Demo Controls"
+            >
+                <Menu size={20} />
+            </button>
+        );
+    }
+
     return (
         <div
             ref={switcherRef}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] flex flex-col items-center gap-4 w-full max-w-sm px-4 md:w-auto md:max-w-none"
+            // UPDATED: Added md:bottom-8 md:left-8 here as well to maintain consistent anchor point
+            className="fixed bottom-4 left-4 md:bottom-8 md:left-8 z-[150] flex flex-col items-start gap-2 animate-in slide-in-from-left-10 duration-300"
         >
             {/* Theme Picker Popover (Appears Above) */}
             {showThemes && (
-                <div className="bg-white/90 backdrop-blur-md border border-gray-200 p-2 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 zoom-in-95 duration-200 mb-2 w-64">
+                <div className="bg-white/90 backdrop-blur-md border border-gray-200 p-2 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 zoom-in-95 duration-200 mb-1 w-64 origin-bottom-left">
                     <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 mb-1">
                         Selecteer Vibe:
                     </div>
@@ -102,16 +120,20 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
             )}
 
             {/* Main Navigation Pill */}
-            <div className="bg-neutral-900/95 backdrop-blur-md border border-neutral-700 p-1.5 rounded-full shadow-2xl flex items-center justify-between w-full md:w-auto md:justify-center gap-1">
+            <div className="bg-neutral-900/95 backdrop-blur-md border border-neutral-700 p-1.5 rounded-full shadow-2xl flex items-center gap-1">
+
+                {/* Minimize Button */}
+                <button
+                    onClick={() => setIsMinimized(true)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-all mr-1"
+                >
+                    <X size={16} />
+                </button>
 
                 {/* Navigation Group */}
-                <div className="flex gap-1 flex-1 md:flex-none justify-center md:justify-start">
+                <div className="flex gap-1">
                     {tabs.map(tab => {
                         const isActive = location.pathname.startsWith(tab.path);
-
-                        // "Split" and view buttons are hidden on mobile to avoid crowding, 
-                        // as SplitView handles its own internal mobile tabs.
-                        // Manager is always visible.
                         const displayClass = tab.showOnMobile ? 'flex' : 'hidden md:flex';
 
                         return (
@@ -131,13 +153,13 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
                 <div className="w-px h-6 bg-neutral-700 mx-1 shrink-0 hidden md:block"></div>
 
                 {/* Actions Group */}
-                <div className="flex gap-1 flex-1 md:flex-none justify-center md:justify-start">
+                <div className="flex gap-1">
                     <button
                         onClick={() => {
                             if (!showThemes) trackEvent('demo_theme_menu_open');
                             setShowThemes(!showThemes);
                         }}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${showThemes ? 'bg-blue-600 text-white shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
+                        className={`flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-full text-sm font-bold transition-all ${showThemes ? 'bg-blue-600 text-white shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
                         title="Switch Brand Vibe"
                     >
                         <Palette size={18} />
