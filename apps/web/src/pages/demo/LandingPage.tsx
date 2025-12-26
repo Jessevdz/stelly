@@ -232,7 +232,7 @@ export const LandingPage = () => {
                             <div className="absolute -top-10 -left-10 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl -z-10"></div>
                             <div className="absolute top-20 right-0 w-72 h-72 bg-indigo-400/10 rounded-full blur-3xl -z-10"></div>
 
-                            {/* --- Mockup 1: Sales Dashboard --- */}
+                            {/* --- Mockup 1: Sales Dashboard (HIDDEN ON MOBILE) --- */}
                             <div className="hidden md:block bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-slate-200/50 p-6 transform hover:scale-[1.02] transition-transform duration-500 relative z-10 mb-6">
                                 <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
                                     <div>
