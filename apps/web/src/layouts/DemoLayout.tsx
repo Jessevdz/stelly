@@ -13,7 +13,10 @@ export interface DemoContextType {
 
 export const DemoLayout = () => {
     // 1. Environment Check
-    const isDemoDomain = window.location.hostname.includes('demo') || window.location.hostname.includes('localhost');
+    const isDemoDomain =
+        window.location.hostname.includes('demo') ||
+        window.location.hostname.includes('localhost') ||
+        window.location.hostname === 'stelly.blackforge.be';
     const { config: initialConfig } = useTenantConfig();
 
     // 2. State
