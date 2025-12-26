@@ -56,7 +56,8 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
 
     // Define the navigation tabs
     const tabs = [
-        { id: 'split', label: 'Split', path: '/demo/split', icon: SplitSquareVertical, showOnMobile: false },
+        // UPDATED: Set showOnMobile to true for the Split view
+        { id: 'split', label: 'Split', path: '/demo/split', icon: SplitSquareVertical, showOnMobile: true },
         { id: 'store', label: 'Winkel', path: '/demo/store', icon: Store, showOnMobile: false },
         { id: 'kitchen', label: 'Keuken', path: '/demo/kitchen', icon: ChefHat, showOnMobile: false },
         { id: 'admin', label: 'Manager', path: '/demo/admin/dashboard', icon: Settings, showOnMobile: true },
