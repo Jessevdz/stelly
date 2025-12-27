@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Settings, SplitSquareVertical, RotateCcw, Palette, Check, Store, ChefHat, X, Menu } from 'lucide-react';
+import { Settings, SplitSquareVertical, RotateCcw, Palette, Check, Store, ChefHat, X, SlidersHorizontal } from 'lucide-react';
 import { THEME_PRESETS } from '../../utils/theme';
 import { trackEvent } from '../../utils/analytics';
 
@@ -13,9 +13,7 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
     const navigate = useNavigate();
     const location = useLocation();
     const [showThemes, setShowThemes] = useState(false);
-
-    // Default to minimized on mobile to prevent immediate obstruction
-    const [isMinimized, setIsMinimized] = useState(() => window.innerWidth < 768);
+    const [isMinimized, setIsMinimized] = useState(false); // Default open on desktop for visibility
 
     // Ref for click-outside detection
     const switcherRef = useRef<HTMLDivElement>(null);
@@ -54,34 +52,31 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
         window.location.href = '/demo/split';
     };
 
-    // Define the navigation tabs
     const tabs = [
-        // UPDATED: Set showOnMobile to true for the Split view
-        { id: 'split', label: 'Split', path: '/demo/split', icon: SplitSquareVertical, showOnMobile: true },
-        { id: 'store', label: 'Winkel', path: '/demo/store', icon: Store, showOnMobile: false },
-        { id: 'kitchen', label: 'Keuken', path: '/demo/kitchen', icon: ChefHat, showOnMobile: false },
-        { id: 'admin', label: 'Manager', path: '/demo/admin/dashboard', icon: Settings, showOnMobile: true },
+        { id: 'split', label: 'Split', path: '/demo/split', icon: SplitSquareVertical },
+        { id: 'store', label: 'Winkel', path: '/demo/store', icon: Store },
+        { id: 'kitchen', label: 'Keuken', path: '/demo/kitchen', icon: ChefHat },
+        { id: 'admin', label: 'Manager', path: '/demo/admin/dashboard', icon: Settings },
     ];
 
-    // --- Minimized State (Small Floating Button) ---
+    // --- Minimized State (Desktop Only) ---
     if (isMinimized) {
         return (
             <button
                 onClick={() => setIsMinimized(false)}
-                // UPDATED: Added md:bottom-8 md:left-8 for more breathing room on desktop
-                className="fixed bottom-4 left-4 md:bottom-8 md:left-8 z-[150] w-12 h-12 bg-neutral-900 text-white rounded-full shadow-xl border border-neutral-700 flex items-center justify-center hover:bg-neutral-800 transition-all hover:scale-105 active:scale-95 animate-in slide-in-from-left-10 duration-300"
+                className="hidden md:flex fixed bottom-8 left-8 z-[150] w-14 h-14 bg-neutral-900 text-white rounded-full shadow-2xl border border-neutral-700 items-center justify-center hover:bg-neutral-800 hover:scale-105 transition-all animate-in slide-in-from-left-10"
                 title="Open Demo Controls"
             >
-                <Menu size={20} />
+                <SlidersHorizontal size={24} />
             </button>
         );
     }
 
+    // --- Expanded State (Desktop Only) ---
     return (
         <div
             ref={switcherRef}
-            // UPDATED: Added md:bottom-8 md:left-8 here as well to maintain consistent anchor point
-            className="fixed bottom-4 left-4 md:bottom-8 md:left-8 z-[150] flex flex-col items-start gap-2 animate-in slide-in-from-left-10 duration-300"
+            className="hidden md:flex fixed bottom-8 left-8 z-[150] flex-col items-start gap-2 animate-in slide-in-from-left-10 duration-300"
         >
             {/* Theme Picker Popover (Appears Above) */}
             {showThemes && (
@@ -99,10 +94,7 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
                                 <button
                                     key={key}
                                     onClick={() => {
-                                        trackEvent('demo_theme_change', {
-                                            preset: key,
-                                            previous_preset: currentPreset
-                                        });
+                                        trackEvent('demo_theme_change', { preset: key, previous_preset: currentPreset });
                                         onPresetChange(key);
                                         setShowThemes(false);
                                     }}
@@ -123,7 +115,6 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
             {/* Main Navigation Pill */}
             <div className="bg-neutral-900/95 backdrop-blur-md border border-neutral-700 p-1.5 rounded-full shadow-2xl flex items-center gap-1">
 
-                {/* Minimize Button */}
                 <button
                     onClick={() => setIsMinimized(true)}
                     className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-all mr-1"
@@ -131,40 +122,35 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
                     <X size={16} />
                 </button>
 
-                {/* Navigation Group */}
                 <div className="flex gap-1">
                     {tabs.map(tab => {
                         const isActive = location.pathname.startsWith(tab.path);
-                        const displayClass = tab.showOnMobile ? 'flex' : 'hidden md:flex';
-
                         return (
                             <button
                                 key={tab.id}
                                 onClick={() => navigate(tab.path)}
-                                className={`${displayClass} items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${isActive ? 'bg-white text-black shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${isActive ? 'bg-white text-black shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
                             >
                                 <tab.icon size={18} />
-                                <span className="hidden md:inline">{tab.label}</span>
+                                <span className="hidden lg:inline">{tab.label}</span>
                             </button>
                         );
                     })}
                 </div>
 
-                {/* Vertical Divider */}
-                <div className="w-px h-6 bg-neutral-700 mx-1 shrink-0 hidden md:block"></div>
+                <div className="w-px h-6 bg-neutral-700 mx-1 shrink-0"></div>
 
-                {/* Actions Group */}
                 <div className="flex gap-1">
                     <button
                         onClick={() => {
                             if (!showThemes) trackEvent('demo_theme_menu_open');
                             setShowThemes(!showThemes);
                         }}
-                        className={`flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-full text-sm font-bold transition-all ${showThemes ? 'bg-blue-600 text-white shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${showThemes ? 'bg-blue-600 text-white shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
                         title="Switch Brand Vibe"
                     >
                         <Palette size={18} />
-                        <span className="hidden md:inline">Vibe</span>
+                        <span className="hidden lg:inline">Vibe</span>
                     </button>
 
                     <button

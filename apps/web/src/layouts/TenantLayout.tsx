@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTenantConfig } from '../hooks/useTenantConfig';
-import { LayoutGrid, Utensils, Settings, LogOut, Store, Menu, X } from 'lucide-react';
+import { LayoutGrid, Utensils, Settings, LogOut, Store, Menu, X, SplitSquareVertical } from 'lucide-react';
 
 export const TenantLayout = () => {
     const { logout } = useAuth();
     const { config } = useTenantConfig();
+    const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile state
 
     const basePath = '/demo/admin';
@@ -92,7 +93,8 @@ export const TenantLayout = () => {
 
                 {/* MAIN CONTENT */}
                 <div className="flex-1 flex flex-col h-full overflow-hidden relative w-full">
-                    {/* Mobile Header */}
+
+                    {/* --- MOBILE HEADER WITH "BACK TO DEMO" --- */}
                     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 shrink-0">
                         <div className="flex items-center gap-3">
                             <button
@@ -103,9 +105,20 @@ export const TenantLayout = () => {
                             </button>
                             <h2 className="font-semibold text-gray-700">Dashboard</h2>
                         </div>
+
+                        {/* DESKTOP: Context Label */}
                         <div className="text-sm text-gray-400 hidden sm:block">
                             Context: <span className="font-mono text-gray-600">Demo Mode</span>
                         </div>
+
+                        {/* MOBILE: Back to Split View Button */}
+                        <button
+                            onClick={() => navigate('/demo/split')}
+                            className="md:hidden flex items-center gap-2 bg-neutral-900 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg active:scale-95 transition-all"
+                        >
+                            <SplitSquareVertical size={14} />
+                            Terug naar Demo
+                        </button>
                     </header>
 
                     <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50">
