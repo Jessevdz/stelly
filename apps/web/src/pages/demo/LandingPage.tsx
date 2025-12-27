@@ -161,7 +161,7 @@ export const LandingPage = () => {
                     strokeWidth={2.5}
                 />
             </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900 leading-none mt-0.5">Stelly</span>
+            <span className="font-bold text-xl tracking-tight text-slate-900 leading-none mt-0.5">Bestel Hier!</span>
         </div>
     );
 
@@ -345,7 +345,7 @@ export const LandingPage = () => {
                                     <div>
                                         <h3 className="font-bold text-slate-900 text-lg mb-1">Puur Afhaal, Geen Delivery</h3>
                                         <p className="text-slate-500 text-sm leading-relaxed">
-                                            Geen gedoe met koeriers of koude maaltijden. Stelly is voor klanten die zelf komen afhalen.
+                                            Geen gedoe met koeriers of koude maaltijden. Bestel Hier! is voor klanten die zelf komen afhalen.
                                         </p>
                                     </div>
                                 </div>

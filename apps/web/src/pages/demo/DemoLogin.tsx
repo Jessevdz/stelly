@@ -76,7 +76,7 @@ export const DemoLogin: React.FC<DemoLoginProps> = ({ onLogin }) => {
                     strokeWidth={2.5}
                 />
             </div>
-            <span className="font-bold text-2xl tracking-tight text-slate-900 leading-none mt-0.5">Stelly</span>
+            <span className="font-bold text-2xl tracking-tight text-slate-900 leading-none mt-0.5">Bestel Hier!</span>
         </div>
     );
 

@@ -13,13 +13,21 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
     const navigate = useNavigate();
     const location = useLocation();
     const [showThemes, setShowThemes] = useState(false);
-    const [isMinimized, setIsMinimized] = useState(false); // Default open on desktop for visibility
+
+    // Default to minimized on mobile to prevent immediate obstruction
+    const [isMinimized, setIsMinimized] = useState(() => window.innerWidth < 768);
+
+    // Check for mobile to adjust layout logic (Top-Right vs Bottom-Left)
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Ref for click-outside detection
     const switcherRef = useRef<HTMLDivElement>(null);
-
-    // Context Logic: Only show Vibe button if NOT in kitchen/admin
-    const isStoreContext = !location.pathname.includes('/kitchen') && !location.pathname.includes('/admin');
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -55,44 +63,60 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
         window.location.href = '/demo/split';
     };
 
-    const handleNavigation = (path: string) => {
-        navigate(path);
-        // UX Improvement: Auto-collapse on mobile after navigation
-        if (window.innerWidth < 768) {
-            setIsMinimized(true);
-        }
-    };
-
     const tabs = [
-        { id: 'split', label: 'Split View', path: '/demo/split', icon: SplitSquareVertical, showOnMobile: true },
+        { id: 'split', label: 'Split', path: '/demo/split', icon: SplitSquareVertical, showOnMobile: true },
         { id: 'store', label: 'Winkel', path: '/demo/store', icon: Store, showOnMobile: false },
         { id: 'kitchen', label: 'Keuken', path: '/demo/kitchen', icon: ChefHat, showOnMobile: false },
         { id: 'admin', label: 'Manager', path: '/demo/admin/dashboard', icon: Settings, showOnMobile: true },
     ];
 
-    // --- Minimized State (Desktop Only) ---
+    // --- Minimized State (Floating Action Button) ---
     if (isMinimized) {
         return (
             <button
                 onClick={() => setIsMinimized(false)}
-                // UPDATED: Added electric blue shadow and border tint to draw attention
-                className="fixed bottom-4 left-4 md:bottom-8 md:left-8 z-[150] w-12 h-12 bg-neutral-900 text-white rounded-full shadow-[0_0_12px_rgba(37,99,235,0.5)] border border-blue-500/40 flex items-center justify-center hover:bg-neutral-800 transition-all hover:scale-105 active:scale-95 animate-in slide-in-from-left-10 duration-300"
+                // Positioning Logic:
+                // Mobile: Fixed Top-Right (Avoids Cart overlapping at bottom). Shape: Pill.
+                // Desktop: Fixed Bottom-Left (Standard Admin area). Shape: Circle.
+                className={`
+                    fixed z-[150] flex items-center gap-2 bg-neutral-900 text-white shadow-2xl border border-neutral-700/50 backdrop-blur-sm
+                    transition-all active:scale-95 animate-in fade-in duration-300 hover:bg-neutral-800
+                    ${isMobile
+                        ? 'top-20 right-4 px-4 py-3 rounded-full' // Mobile Pill
+                        : 'bottom-8 left-8 w-14 h-14 justify-center rounded-full hover:scale-105' // Desktop Circle
+                    }
+                `}
                 title="Open Demo Controls"
             >
-                <SlidersHorizontal size={24} />
+                <SlidersHorizontal size={20} />
+                {isMobile && <span className="font-bold text-sm tracking-wide">Demo</span>}
+
+                {/* Attention Grabber: Pulsing Dot (To solve "users don't notice it") */}
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 rounded-full animate-ping" />
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white" />
             </button>
         );
     }
 
-    // --- Expanded State (Desktop Only) ---
+    // --- Expanded State ---
+    // Mobile: Align End (Right), Top-down stack
+    // Desktop: Align Start (Left), Bottom-up stack
+    const containerPosition = isMobile
+        ? 'top-20 right-4 items-end'
+        : 'bottom-8 left-8 items-start';
+
     return (
         <div
             ref={switcherRef}
-            className="fixed bottom-4 left-4 md:bottom-8 md:left-8 z-[150] flex flex-col items-start gap-2 animate-in slide-in-from-left-10 duration-300"
+            className={`fixed z-[150] flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-200 ${containerPosition}`}
         >
             {/* Theme Picker Popover */}
+            {/* Mobile: Show BELOW main pill (order-last). Desktop: Show ABOVE (order-first). */}
             {showThemes && (
-                <div className="bg-white/90 backdrop-blur-md border border-gray-200 p-2 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 zoom-in-95 duration-200 mb-1 w-64 origin-bottom-left">
+                <div className={`
+                    bg-white/90 backdrop-blur-md border border-gray-200 p-2 rounded-2xl shadow-2xl w-64
+                    ${isMobile ? 'order-last mt-1 origin-top-right' : 'order-first mb-1 origin-bottom-left'}
+                `}>
                     <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100 mb-1">
                         Selecteer Vibe:
                     </div>
@@ -106,10 +130,12 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
                                 <button
                                     key={key}
                                     onClick={() => {
-                                        trackEvent('demo_theme_change', { preset: key, previous_preset: currentPreset });
+                                        trackEvent('demo_theme_change', {
+                                            preset: key,
+                                            previous_preset: currentPreset
+                                        });
                                         onPresetChange(key);
                                         setShowThemes(false);
-                                        if (window.innerWidth < 768) setIsMinimized(true);
                                     }}
                                     className={`
                                         w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-between
@@ -126,49 +152,51 @@ export const PersonaSwitcher: React.FC<PersonaSwitcherProps> = ({ currentPreset,
             )}
 
             {/* Main Navigation Pill */}
-            <div className="bg-neutral-900/95 backdrop-blur-md border border-neutral-700 p-1.5 rounded-full shadow-2xl flex items-center gap-1 max-w-[90vw] overflow-x-auto hide-scrollbar">
+            <div className="bg-neutral-900/95 backdrop-blur-md border border-neutral-700 p-1.5 rounded-full shadow-2xl flex items-center gap-1">
 
+                {/* Minimize Button */}
                 <button
                     onClick={() => setIsMinimized(true)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-all mr-1 shrink-0"
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-all mr-1"
                 >
                     <X size={16} />
                 </button>
 
+                {/* Navigation Group */}
                 <div className="flex gap-1">
                     {tabs.map(tab => {
                         const isActive = location.pathname.startsWith(tab.path);
+                        const displayClass = tab.showOnMobile ? 'flex' : 'hidden md:flex';
+
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => handleNavigation(tab.path)}
-                                // UX Improvement: Always show labels (removed hidden md:inline)
-                                className={`${displayClass} items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${isActive ? 'bg-white text-black shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
+                                onClick={() => navigate(tab.path)}
+                                className={`${displayClass} items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition-all ${isActive ? 'bg-white text-black shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
                             >
                                 <tab.icon size={18} />
-                                <span>{tab.label}</span>
+                                <span className="hidden md:inline">{tab.label}</span>
                             </button>
                         );
                     })}
                 </div>
 
+                {/* Vertical Divider */}
                 <div className="w-px h-6 bg-neutral-700 mx-1 shrink-0 hidden md:block"></div>
 
+                {/* Actions Group */}
                 <div className="flex gap-1">
-                    {/* Context check for Vibe button */}
-                    {isStoreContext && (
-                        <button
-                            onClick={() => {
-                                if (!showThemes) trackEvent('demo_theme_menu_open');
-                                setShowThemes(!showThemes);
-                            }}
-                            className={`flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${showThemes ? 'bg-blue-600 text-white shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
-                            title="Switch Brand Vibe"
-                        >
-                            <Palette size={18} />
-                            <span>Vibe</span>
-                        </button>
-                    )}
+                    <button
+                        onClick={() => {
+                            if (!showThemes) trackEvent('demo_theme_menu_open');
+                            setShowThemes(!showThemes);
+                        }}
+                        className={`flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-full text-sm font-bold transition-all ${showThemes ? 'bg-blue-600 text-white shadow-lg' : 'text-neutral-400 hover:text-white hover:bg-white/10'}`}
+                        title="Switch Brand Vibe"
+                    >
+                        <Palette size={18} />
+                        <span className="hidden md:inline">Vibe</span>
+                    </button>
 
                     <button
                         onClick={handleReset}
