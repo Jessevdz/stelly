@@ -107,10 +107,12 @@ export function SplitView() {
     `;
 
     return (
-        <div className="flex flex-col md:flex-row h-screen w-full bg-neutral-950 md:p-4 gap-0 md:gap-4 relative overflow-hidden">
+        // CHANGED: Use h-[100dvh] instead of h-screen to handle mobile browser address bars gracefully
+        <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-neutral-950 md:p-4 gap-0 md:gap-4 relative overflow-hidden">
 
             {/* --- STATIC HEADER (MOBILE ONLY) --- */}
-            <div className={`md:hidden shrink-0 z-50 bg-neutral-900 border-b border-neutral-800 p-3 flex items-center justify-between gap-3 ${tourActive ? 'z-[201] relative' : ''}`}>
+            {/* CHANGED: Added 'sticky top-0' so it never scrolls away. Removed 'relative' from conditional as sticky handles it. */}
+            <div className={`md:hidden shrink-0 sticky top-0 z-50 bg-neutral-900 border-b border-neutral-800 p-3 flex items-center justify-between gap-3 ${tourActive ? 'z-[201]' : ''}`}>
 
                 {/* 1. Left: Reset Button */}
                 <button
