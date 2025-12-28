@@ -6,48 +6,52 @@ import { BrandButton } from '../common/BrandButton';
 interface MenuItemProps {
     item: any;
     onAdd: (item: any) => void;
-    preset?: string; // To conditionally render "Add" button styles
+    preset?: string;
 }
 
 export const MenuGridItem: React.FC<MenuItemProps> = ({ item, onAdd, preset = 'mono-luxe' }) => {
 
-    // --- THEME LOGIC ---
-    // Different presets have different "Add to Cart" interactions
     const renderAddButton = () => {
         if (preset === 'fresh-market' || preset === 'stelly') {
-            // Big pill button at bottom
             return (
-                <div className="mt-4">
+                <div className="mt-2 md:mt-4">
                     <BrandButton
                         fullWidth
-                        size="md"
+                        // Use small button on mobile, medium on desktop
+                        size="sm"
+                        className="md:text-sm md:py-2.5"
                         onClick={(e) => {
                             e.stopPropagation();
                             onAdd(item);
                         }}
                     >
-                        Add ${(item.price / 100).toFixed(2)}
+                        {/* Compact text on mobile: Just "Add" or "+" */}
+                        <span className="md:hidden flex items-center gap-1">
+                            <Plus size={14} /> Add
+                        </span>
+                        <span className="hidden md:inline">
+                            Add ${(item.price / 100).toFixed(2)}
+                        </span>
                     </BrandButton>
                 </div>
             );
         }
 
         if (preset === 'tech-ocean') {
-            // Floating Action Button (FAB)
             return (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
                         onAdd(item);
                     }}
-                    className="absolute top-3 right-3 bg-primary text-white p-2 rounded-[var(--radius-sm)] shadow-lg hover:brightness-110 active:scale-95 transition-all"
+                    className="absolute top-2 right-2 md:top-3 md:right-3 bg-primary text-white p-1.5 md:p-2 rounded-[var(--radius-sm)] shadow-lg hover:brightness-110 active:scale-95 transition-all"
                 >
-                    <Plus size={20} />
+                    <Plus size={16} className="md:w-5 md:h-5" />
                 </button>
             );
         }
 
-        // Default: Mono Luxe (Minimalist corner icon)
+        // Default: Mono Luxe
         return (
             <button
                 onClick={(e) => {
@@ -57,12 +61,12 @@ export const MenuGridItem: React.FC<MenuItemProps> = ({ item, onAdd, preset = 'm
                 className="
                     absolute bottom-0 right-0 
                     bg-primary text-primary-fg 
-                    p-3 
+                    p-2 md:p-3 
                     rounded-tl-[var(--radius-lg)] 
                     hover:scale-110 transition-transform
                 "
             >
-                <Plus size={20} />
+                <Plus size={16} className="md:w-5 md:h-5" />
             </button>
         );
     };
@@ -74,7 +78,7 @@ export const MenuGridItem: React.FC<MenuItemProps> = ({ item, onAdd, preset = 'm
             className="flex flex-col h-full"
             onClick={() => onAdd(item)}
         >
-            {/* Image Area */}
+            {/* Image Area - Aspect Ratio */}
             <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100 group">
                 {item.image_url ? (
                     <img
@@ -84,38 +88,43 @@ export const MenuGridItem: React.FC<MenuItemProps> = ({ item, onAdd, preset = 'm
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-text-muted text-sm">
+                    <div className="w-full h-full flex items-center justify-center text-text-muted text-xs md:text-sm">
                         No Image
                     </div>
                 )}
 
-                {/* Tech Ocean FAB lives inside the image area */}
                 {preset === 'tech-ocean' && renderAddButton()}
             </div>
 
-            {/* Content Area */}
-            <div className="flex flex-col flex-1 p-5">
-                <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-bold font-heading text-text-main leading-tight case-brand">
+            {/* Content Area - Reduced Padding */}
+            <div className="flex flex-col flex-1 p-3 md:p-5">
+                <div className="flex justify-between items-start mb-1 md:mb-2 gap-2">
+                    {/* Smaller Title Font */}
+                    <h3 className="text-sm md:text-lg font-bold font-heading text-text-main leading-tight case-brand line-clamp-2">
                         {item.name}
                     </h3>
-                    {/* For Mono Luxe/Tech Ocean, price is up top. For others, it's in the button. */}
+
                     {(preset !== 'fresh-market' && preset !== 'stelly') && (
-                        <span className="font-bold text-primary text-lg">
+                        <span className="font-bold text-primary text-xs md:text-lg whitespace-nowrap">
                             ${(item.price / 100).toFixed(2)}
                         </span>
                     )}
                 </div>
 
-                <p className="text-sm text-text-muted line-clamp-2 mb-4 flex-1">
+                {/* Hide Description on Mobile to save space, or make it very small/truncated */}
+                <p className="text-xs md:text-sm text-text-muted line-clamp-2 mb-2 md:mb-4 flex-1 hidden md:block">
                     {item.description || "No description available."}
                 </p>
+                {/* Mobile-only price display for themes that put price in button usually */}
+                {(preset === 'fresh-market' || preset === 'stelly') && (
+                    <p className="text-xs font-bold text-primary md:hidden mb-1">
+                        ${(item.price / 100).toFixed(2)}
+                    </p>
+                )}
 
-                {/* Render Button based on Theme Logic - FIXED HERE */}
                 {(preset === 'fresh-market' || preset === 'stelly') && renderAddButton()}
             </div>
 
-            {/* Mono Luxe Button lives absolute bottom-right */}
             {preset === 'mono-luxe' && renderAddButton()}
         </BrandCard>
     );
