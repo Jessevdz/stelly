@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Users, ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { Clock, Users, ArrowLeft, ArrowRight, Check, Play, Flame, ChefHat } from 'lucide-react';
 import { trackEvent } from '../../utils/analytics';
 
 interface OrderItem {
@@ -26,14 +26,21 @@ interface KitchenTicketProps {
 
 const STATUS_FLOW = ['PENDING', 'QUEUED', 'PREPARING', 'READY', 'COMPLETED'];
 
+// Helper to get actionable labels
+const getNextAction = (status: string) => {
+    switch (status) {
+        case 'PENDING': return { label: 'Accept', icon: <Play size={18} fill="currentColor" /> };
+        case 'QUEUED': return { label: 'Cook', icon: <Flame size={18} /> };
+        case 'PREPARING': return { label: 'Ready', icon: <ChefHat size={18} /> };
+        case 'READY': return { label: 'Clear', icon: <Check size={18} /> };
+        default: return { label: 'Next', icon: <ArrowRight size={18} /> };
+    }
+};
+
 export const KitchenTicket: React.FC<KitchenTicketProps> = ({ order, onStatusChange }) => {
     const [elapsed, setElapsed] = useState(0);
 
     useEffect(() => {
-        // FIX: Force UTC interpretation.
-        // Backend sends "2023-10-25T10:00:00" (Naive UTC).
-        // Browser parses as Local Time. If you are in UTC+1, diff is 1 hour immediately.
-        // Appending 'Z' forces the browser to treat the string as UTC.
         const dateStr = order.created_at.endsWith('Z')
             ? order.created_at
             : `${order.created_at}Z`;
@@ -70,13 +77,13 @@ export const KitchenTicket: React.FC<KitchenTicketProps> = ({ order, onStatusCha
 
         let nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
         const newStatus = STATUS_FLOW[nextIndex];
+
         trackEvent('kds_status_update', {
             status: newStatus,
             order_id: order.id,
             ticket_number: order.ticket_number
         });
 
-        // Bounds check
         if (nextIndex < 0) nextIndex = 0;
         if (nextIndex >= STATUS_FLOW.length) nextIndex = STATUS_FLOW.length - 1;
 
@@ -86,10 +93,9 @@ export const KitchenTicket: React.FC<KitchenTicketProps> = ({ order, onStatusCha
     };
 
     const isFirstStep = order.status === 'PENDING';
-    const isLastStep = order.status === 'READY';
+    const nextAction = getNextAction(order.status);
 
     return (
-        // CHANGED: Removed 'h-full', added 'w-full shrink-0'
         <div className="flex flex-col w-full shrink-0 bg-slate-800 border border-slate-600 shadow-xl rounded-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header Strip */}
             <div className={`p-2 flex justify-between items-center ${getHeaderColor()} font-mono`}>
@@ -116,8 +122,7 @@ export const KitchenTicket: React.FC<KitchenTicketProps> = ({ order, onStatusCha
             </div>
 
             {/* Items List */}
-            {/* Changed max-h to min-h to ensure it doesn't look collapsed if empty, but grows naturally */}
-            <div className="p-3 flex-1 space-y-2 overflow-y-auto max-h-[300px]">
+            <div className="p-3 flex-1 space-y-2 overflow-y-auto min-h-[150px] max-h-[300px]">
                 {order.items.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-start text-gray-200 border-b border-gray-700/50 pb-2 last:border-0 last:pb-0">
                         <div>
@@ -134,31 +139,38 @@ export const KitchenTicket: React.FC<KitchenTicketProps> = ({ order, onStatusCha
             </div>
 
             {/* Actions */}
-            <div className="flex border-t border-slate-700 mt-auto">
+            <div className="flex border-t border-slate-700 mt-auto bg-slate-900/50">
+                {/* Back Button */}
                 <button
                     onClick={() => handleMove('prev')}
                     disabled={isFirstStep}
-                    className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center"
+                    className={`
+                        px-4 py-3 flex items-center justify-center transition-colors
+                        ${isFirstStep
+                            ? 'text-slate-600 cursor-not-allowed bg-slate-800/50'
+                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                        }
+                    `}
+                    title="Move Back"
                 >
                     <ArrowLeft size={20} />
                 </button>
+
                 <div className="w-px bg-slate-700"></div>
 
-                {isLastStep ? (
-                    <button
-                        onClick={() => handleMove('next')} // Moves to COMPLETED
-                        className="flex-1 py-3 bg-green-700 hover:bg-green-600 text-white font-bold uppercase tracking-wider transition-colors flex justify-center items-center gap-2"
-                    >
-                        Clear <Check size={18} />
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => handleMove('next')}
-                        className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-gray-400 hover:text-white transition-colors flex justify-center items-center"
-                    >
-                        <ArrowRight size={20} />
-                    </button>
-                )}
+                {/* Primary Action Button (Dynamic Verb) */}
+                <button
+                    onClick={() => handleMove('next')}
+                    className={`
+                        flex-1 py-3 font-bold uppercase tracking-wider transition-colors flex justify-center items-center gap-2
+                        ${order.status === 'READY'
+                            ? 'bg-green-600 hover:bg-green-500 text-white'
+                            : 'bg-slate-800 hover:bg-slate-700 text-white hover:text-blue-200'
+                        }
+                    `}
+                >
+                    {nextAction.label} {nextAction.icon}
+                </button>
             </div>
         </div>
     );

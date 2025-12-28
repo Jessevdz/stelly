@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useTenantConfig } from '../../hooks/useTenantConfig';
 import { useAuth } from '../../context/AuthContext';
-import { Wifi, WifiOff, ChefHat, Loader2 } from 'lucide-react';
+import { Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { KitchenTicket } from '../../components/kds/KitchenTicket';
 
 // --- Types ---
@@ -9,7 +9,7 @@ interface OrderItem {
     id: string;
     name: string;
     qty: number;
-    modifiers?: { name: string; price: number }[]; // Updated type definition to match usage
+    modifiers?: { name: string; price: number }[];
 }
 
 interface Order {
@@ -28,19 +28,22 @@ const ALERT_SOUND = "data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqq
 
 // Lane Configuration
 const LANES = [
-    { id: 'PENDING', label: 'Bestellingen', color: 'border-blue-500/50' },
-    { id: 'QUEUED', label: 'To Do', color: 'border-yellow-500/50' },
-    { id: 'PREPARING', label: 'Koken', color: 'border-orange-500/50' },
-    { id: 'READY', label: 'Klaar / Ophalen', color: 'border-green-500/50' },
+    { id: 'PENDING', label: 'Bestellingen', color: 'border-blue-500', bg: 'bg-blue-500/10 text-blue-500' },
+    { id: 'QUEUED', label: 'To Do', color: 'border-yellow-500', bg: 'bg-yellow-500/10 text-yellow-500' },
+    { id: 'PREPARING', label: 'Koken', color: 'border-orange-500', bg: 'bg-orange-500/10 text-orange-500' },
+    { id: 'READY', label: 'Klaar', color: 'border-green-500', bg: 'bg-green-500/10 text-green-500' },
 ];
 
 export function KitchenDisplay() {
     const { config } = useTenantConfig();
-    const { token } = useAuth(); // <--- Get Token
+    const { token } = useAuth();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isConnected, setIsConnected] = useState(false);
     const [isActive, setIsActive] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    // NEW: Active Tab State for Mobile View
+    const [activeTab, setActiveTab] = useState('PENDING');
 
     // Refs
     const ws = useRef<WebSocket | null>(null);
@@ -69,7 +72,6 @@ export function KitchenDisplay() {
     useEffect(() => {
         if (!config || !isActive) return;
 
-        // Pass headers to ensure we fetch orders for the correct schema
         const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
 
         fetch('/api/v1/store/orders', { headers })
@@ -86,9 +88,6 @@ export function KitchenDisplay() {
         if (!config || !isActive) return;
 
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-
-        // Append Token to Query String
-        // This ensures the backend knows WHICH demo schema to subscribe to
         const wsUrl = `${protocol}://${window.location.host}/api/v1/ws/kitchen${token ? `?token=${token}` : ''}`;
 
         let isMounted = true;
@@ -96,8 +95,6 @@ export function KitchenDisplay() {
 
         const connect = () => {
             if (!isMounted) return;
-
-            // Close existing connection if any
             if (ws.current) ws.current.close();
 
             ws.current = new WebSocket(wsUrl);
@@ -144,7 +141,7 @@ export function KitchenDisplay() {
             clearTimeout(reconnectTimeout);
             ws.current?.close();
         };
-    }, [config, isActive, token]); // Re-run if token changes
+    }, [config, isActive, token]);
 
     // --- 4. Logic ---
     const handleStatusChange = async (orderId: string, newStatus: string) => {
@@ -154,6 +151,9 @@ export function KitchenDisplay() {
             }
             return prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
         });
+
+        // Optimistic UI: If moving from active tab to another, we don't strictly need to switch tabs, 
+        // allowing the chef to process multiple tickets in the current lane efficiently.
 
         try {
             const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -173,16 +173,17 @@ export function KitchenDisplay() {
 
     if (!isActive) {
         return (
-            <div className="bg-neutral-950 h-screen text-white flex flex-col items-center justify-center gap-8">
-                <ChefHat size={80} className="text-blue-500" />
+            <div className="bg-neutral-950 h-screen text-white flex flex-col items-center justify-center gap-8 p-4">
+                <div className="bg-neutral-900 p-8 rounded-full border border-neutral-800 shadow-2xl">
+                    <Loader2 size={64} className="text-blue-500 animate-spin-slow" />
+                </div>
                 <div className="text-center">
-                    <h1 className="text-4xl font-bold mb-2">Keukendisplay</h1>
-                    {/* Show connection context for debugging */}
-                    {token && <p className="text-xs text-gray-500 font-mono">Secure Context Active</p>}
+                    <h1 className="text-3xl font-bold mb-2">Keukendisplay</h1>
+                    <p className="text-gray-400">Audio en scherm worden geactiveerd</p>
                 </div>
                 <button
                     onClick={enableSystem}
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-12 rounded-full text-2xl transition-all shadow-[0_0_20px_rgba(22,163,74,0.5)]"
+                    className="bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-12 rounded-full text-xl transition-all shadow-[0_0_30px_rgba(22,163,74,0.4)] hover:scale-105 active:scale-95"
                 >
                     START SHIFT
                 </button>
@@ -192,71 +193,111 @@ export function KitchenDisplay() {
 
     return (
         <div className="h-full bg-[#121212] text-gray-100 font-sans flex flex-col overflow-hidden">
-            <header className="bg-neutral-900 border-b border-gray-800 p-4 flex justify-between items-center h-16 shadow-md shrink-0">
+            {/* Header */}
+            <header className="bg-neutral-900 border-b border-gray-800 px-4 py-3 flex justify-between items-center shrink-0 z-20 relative">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-bold tracking-wider text-gray-200">KEUKEN</h1>
-                    <span className="hidden md:inline bg-gray-800 text-gray-400 px-3 py-1 rounded text-sm font-mono border border-gray-700">
+                    <h1 className="text-lg font-bold tracking-wider text-gray-200">KDS</h1>
+                    <span className="hidden md:inline bg-gray-800 text-gray-400 px-3 py-1 rounded text-xs font-mono border border-gray-700 truncate max-w-[150px]">
                         {config.name}
                     </span>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                        <span className="text-gray-400 text-sm uppercase tracking-widest font-bold">Bestellingen:</span>
-                        <span className="text-2xl font-black text-white">{orders.length}</span>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 bg-neutral-800 px-3 py-1 rounded-full border border-neutral-700">
+                        <span className="text-xs text-gray-400 uppercase font-bold">Total</span>
+                        <span className="text-sm font-black text-white">{orders.length}</span>
                     </div>
-                    <div className="h-6 w-px bg-gray-700"></div>
-                    <div className="flex items-center gap-2">
-                        {isConnected ? (
-                            <Wifi size={20} className="text-green-500" />
-                        ) : (
-                            <WifiOff size={20} className="text-red-500 animate-pulse" />
-                        )}
-                    </div>
+                    {isConnected ? (
+                        <Wifi size={18} className="text-green-500" />
+                    ) : (
+                        <WifiOff size={18} className="text-red-500 animate-pulse" />
+                    )}
                 </div>
             </header>
 
-            <main className="flex-1 p-2 md:p-4 overflow-hidden">
+            {/* MOBILE: Tab Bar (Sticky) */}
+            <div className="md:hidden flex bg-neutral-900 border-b border-gray-800 sticky top-0 z-10 overflow-x-auto no-scrollbar">
+                {LANES.map(lane => {
+                    const count = orders.filter(o => o.status === lane.id).length;
+                    const isActiveTab = activeTab === lane.id;
+
+                    return (
+                        <button
+                            key={lane.id}
+                            onClick={() => setActiveTab(lane.id)}
+                            className={`
+                                flex-1 py-3 px-2 flex flex-col items-center gap-1 min-w-[80px] transition-colors relative
+                                ${isActiveTab ? 'text-white bg-neutral-800' : 'text-gray-500 hover:bg-neutral-800/50'}
+                            `}
+                        >
+                            <span className="text-[10px] font-bold uppercase tracking-wider">{lane.label}</span>
+                            <span className={`
+                                text-xs font-mono font-bold px-2 py-0.5 rounded-full
+                                ${isActiveTab ? lane.bg : 'bg-gray-800 text-gray-400'}
+                            `}>
+                                {count}
+                            </span>
+                            {/* Active Indicator Line */}
+                            {isActiveTab && (
+                                <div className={`absolute bottom-0 left-0 w-full h-0.5 ${lane.bg.split(' ')[1].replace('text-', 'bg-')}`} />
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <main className="flex-1 p-2 md:p-4 overflow-hidden relative">
                 {loading ? (
                     <div className="h-full flex items-center justify-center">
                         <Loader2 className="animate-spin text-gray-600" size={48} />
                     </div>
                 ) : (
-                    // RESPONSIVE GRID CONFIGURATION
-                    // Mobile: Flex row with horizontal scrolling + Snap behavior
-                    // Desktop: 4 Column Grid
-                    <div className="flex flex-row overflow-x-auto snap-x snap-mandatory gap-4 h-full md:grid md:grid-cols-4 md:overflow-hidden pb-4 md:pb-0">
-                        {LANES.map(lane => {
-                            const laneOrders = orders.filter(o => o.status === lane.id);
+                    <div className="h-full w-full">
+                        {/* RESPONSIVE LAYOUT STRATEGY:
+                            - Mobile: Single column list (filtered by activeTab).
+                            - Desktop: 4-Column Grid (all lanes visible).
+                        */}
+                        <div className="flex flex-col h-full md:grid md:grid-cols-4 md:gap-4">
+                            {LANES.map(lane => {
+                                const laneOrders = orders.filter(o => o.status === lane.id);
+                                const isVisibleOnMobile = activeTab === lane.id;
 
-                            return (
-                                <div
-                                    key={lane.id}
-                                    className="flex flex-col h-full bg-neutral-900/50 rounded-lg border border-gray-800 min-w-[85vw] md:min-w-0 snap-center"
-                                >
-                                    <div className={`p-3 border-b-2 ${lane.color} bg-neutral-900 flex justify-between items-center sticky top-0`}>
-                                        <h2 className="font-bold uppercase tracking-wider text-sm text-gray-300">{lane.label}</h2>
-                                        <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-full font-mono">
-                                            {laneOrders.length}
-                                        </span>
-                                    </div>
+                                return (
+                                    <div
+                                        key={lane.id}
+                                        className={`
+                                            flex-col h-full bg-neutral-900/50 md:bg-neutral-900/30 md:rounded-lg md:border md:border-gray-800 overflow-hidden
+                                            ${isVisibleOnMobile ? 'flex' : 'hidden md:flex'}
+                                        `}
+                                    >
+                                        {/* Desktop Lane Header (Hidden on Mobile as Tabs replace it) */}
+                                        <div className={`hidden md:flex p-3 border-b-2 ${lane.color} bg-neutral-900 justify-between items-center sticky top-0 z-10`}>
+                                            <h2 className="font-bold uppercase tracking-wider text-sm text-gray-300">{lane.label}</h2>
+                                            <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-full font-mono">
+                                                {laneOrders.length}
+                                            </span>
+                                        </div>
 
-                                    <div className="flex-1 overflow-y-auto p-2 space-y-3">
-                                        {laneOrders.length === 0 && (
-                                            <div className="text-center text-gray-600 italic text-sm mt-10">Empty</div>
-                                        )}
-                                        {laneOrders.map(order => (
-                                            <KitchenTicket
-                                                key={order.id}
-                                                // @ts-ignore
-                                                order={order}
-                                                onStatusChange={handleStatusChange}
-                                            />
-                                        ))}
+                                        {/* Scrollable Order List */}
+                                        <div className="flex-1 overflow-y-auto p-2 space-y-3">
+                                            {laneOrders.length === 0 && (
+                                                <div className="h-full flex flex-col items-center justify-center text-gray-700 space-y-2 opacity-50 min-h-[200px]">
+                                                    <div className="w-12 h-1 bg-gray-800 rounded-full" />
+                                                    <span className="text-sm font-medium">Geen tickets</span>
+                                                </div>
+                                            )}
+                                            {laneOrders.map(order => (
+                                                <KitchenTicket
+                                                    key={order.id}
+                                                    order={order}
+                                                    onStatusChange={handleStatusChange}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
             </main>
