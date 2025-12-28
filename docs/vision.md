@@ -1,68 +1,90 @@
-# Stelly: Vision & Value Proposition Strategy
+# Product Vision & Strategic Overview
 
-## Executive Summary
+**Product Name:** Bestel Hier!
+**Tagline:** Your brand, your platform, your profits.
 
-Stelly is not merely an online ordering tool; it is a **white-label digital infrastructure engine** designed to return brand sovereignty to restaurants.
+## 1. Executive Summary
 
-In a market dominated by aggregator marketplaces (which charge high commissions and dilute brand identity) and rigid SaaS templates (which make every restaurant look identical), Stelly introduces a third path: **The Chameleon Architecture.**
+**Bestel Hier!** is a white-label, rapid-deployment Micro-SaaS designed to give independent restaurants, fritures, and takeaways digital sovereignty. Unlike marketplaces (UberEats, Deliveroo) that act as gatekeepers and tax margins, Bestel Hier! provides hospitality businesses with their own high-performance ordering web app, running on their own domain, with their own branding.
 
-Our vision is to provide **Agency-Grade Branding** at **SaaS Scalability**. We allow a high-end steakhouse and a fast-casual juice bar to run on the exact same underlying technology stack, while offering their customers two radically different, immersive digital experiences.
+We bridge the gap between expensive custom agency development ($50k+) and generic, brand-diluting SaaS templates.
 
----
+## 2. The Vision
 
-## The Core Unique Selling Proposition (USP)
+**To democratize enterprise-grade food ordering infrastructure for local hospitality.**
 
-**"Radical Brand Fidelity on a Shared Infrastructure."**
-
-Stelly creates a digital environment that molds itself to the restaurant's identity, rather than forcing the restaurant to conform to a template. By abstracting "Design" into "Data," we enable frictionless scaling for the platform while delivering bespoke experiences for the tenant.
-
-### The "Chameleon Engine" Differentiator
-
-Most platforms allow users to upload a logo and change a header color. Stelly changes the *physics* of the interface based on the brand "Vibe":
-
-* **For Fine Dining (Mono Luxe):** The interface becomes sharp, minimalistic, and cinematic. It emphasizes photography and elegance.
-* **For Fast Casual (Fresh Market):** The interface becomes rounded, organic, and friendly. It emphasizes speed and health.
-* **For Ghost Kitchens (Tech Ocean):** The interface becomes dark-mode native, high-contrast, and efficient.
+We believe that a local sandwich shop or high-end bistro should have access to the same digital ordering capabilities as multinational chains—without the technical debt or exorbitant costs. Our vision is a world where the "platform" becomes invisible, allowing the restaurant's brand and food to take center stage.
 
 ---
 
-## Stakeholder Value Propositions
+## 3. Stakeholder Value Propositions
 
-### 1. For the Restaurant Owner (The Tenant)
+### For the Restaurant Owner (The Tenant)
 
 **The Promise: Digital Sovereignty & Margin Recovery.**
 
-* **Own Your Traffic:** Unlike marketplaces that act as gatekeepers, Stelly allows restaurants to operate on their own custom domains (e.g., `order.joespizza.com`). This builds direct SEO value and brand equity.
-* **Agency Quality, SaaS Price:** Tenants receive a website that looks like it cost $50,000 to build, instantly provisioned for a monthly subscription.
-* **Data Isolation:** Your customer data, sales history, and menu logic are physically separated from other tenants in the database. This ensures bank-grade privacy and security (GDPR/CCPA compliance) out of the box.
-* **Commission Freedom:** By owning the ordering pipe, restaurants reclaim the 20-30% usually lost to delivery apps.
+* **Own Your Traffic:** Unlike marketplaces that commoditize your food, Stelly allows you to operate on your own custom domain (e.g., `order.joespizza.com`). This builds direct SEO value and long-term brand equity.
+* **Agency Quality, SaaS Price:** You receive a website that looks like it cost $50,000 to custom-build, yet it is instantly provisioned for a predictable monthly subscription.
+* **Data Isolation:** Your customer data, sales history, and menu logic are physically separated from other tenants in the database via our "Schema-per-Tenant" architecture. This ensures bank-grade privacy and GDPR compliance out of the box.
+* **Commission Freedom:** By owning the ordering pipe, you reclaim the 20-30% margin usually lost to third-party delivery apps.
 
-### 2. For the Kitchen Staff (The Operator)
+### For the Kitchen Staff (The Operator)
 
 **The Promise: Chaos Management & Flow.**
 
-* **The "Cockpit" Experience:** The Kitchen Display System (KDS) is designed for the harsh reality of a commercial kitchen. It uses high-contrast dark modes to reduce glare and visual fatigue.
+* **The "Cockpit" Experience:** Our Kitchen Display System (KDS) is designed for the harsh reality of a commercial kitchen. It uses high-contrast dark modes to reduce glare and visual fatigue during double shifts.
 * **Sensory Feedback:** The system utilizes auditory cues ("Dings") and visual color-coding (Green/Yellow/Red) based on prep-time, ensuring chefs know exactly which orders are lagging without needing to read fine print.
-* **Hardware Agnostic:** It runs on any device with a browser—from expensive POS terminals to $50 generic tablets—lowering the barrier to entry.
+* **Hardware Agnostic:** The KDS runs on any device with a browser—from expensive industrial POS terminals to $50 generic tablets—drastically lowering the barrier to entry.
 
-### 3. For the Customer (The Diner)
+### For the Customer (The Diner)
 
 **The Promise: Immersion & Frictionless Gratification.**
 
-* **Invisible Tech:** The technology recedes to let the food shine. Parallax scrolling and sticky navigation make browsing menus feel like a native mobile app, not a clunky web form.
+* **Invisible Tech:** The technology recedes to let the food shine. Features like parallax scrolling and sticky navigation make browsing menus feel like a native mobile app, not a clunky web form.
 * **Contextual Comfort:** The interface "feels" like the restaurant they walked into. A burger joint feels fun and bouncy; a sushi bar feels precise and serene. This consistency increases trust and conversion rates.
-* **Zero-Friction Checkout:** No forced logins or complex account creations. The cart travels with the user (via the "Cart Drawer"), making the path from "Hungry" to "Ordered" as short as possible.
+* **Zero-Friction Checkout:** We eliminated forced logins and complex account creations. The cart travels with the user via a persistent "Cart Drawer," making the path from "Hungry" to "Ordered" as short as possible.
 
-### 4. For the Platform Business (The Super Admin)
+### For the Platform Business (The Super Admin)
 
 **The Promise: Infinite Scale with Zero Maintenance Debt.**
 
-* **Instant Provisioning:** Onboarding a new client takes seconds. The system automatically generates databases, DNS routing, and initial content.
-* **Unified Maintenance:** Despite every store looking different, they all run on one single codebase. One bug fix improves 1,000 stores simultaneously.
+* **Instant Provisioning:** Onboarding a new client takes seconds. The `sys` API automatically generates isolated database schemas, configures DNS routing, and seeds initial content.
+* **Unified Maintenance:** Despite every store looking unique via our Theme Engine, they all run on one single codebase. One bug fix improves 1,000 stores simultaneously.
 * **Fleet Health:** A centralized "God View" dashboard allows the platform team to monitor API latency, global revenue, and server health across all tenants in real-time.
 
 ---
 
-## Conclusion
+## 4. Key Product Differentiators (USPs)
 
-Stelly is built on the belief that **scalability should not come at the cost of identity.** By solving the technical complexity of multi-tenancy and dynamic theming, we empower restaurants to stop renting their customers from aggregators and start owning their digital future.
+### A. The "Risk-Free" Financial Model
+
+We have inverted the traditional agency and marketplace pricing models to align perfectly with the restaurant's success.
+
+* **No Upfront Costs:** Unlike agencies that charge €5,000+ for a custom website, Bestel Hier! has zero setup fees.
+* **Lowest Commission on the Market:** We reject the industry-standard 30% tax on revenue. Our platform operates on a minimal transaction fee (approx. 1%), allowing restaurants to keep their hard-earned margins.
+
+### B. Instant Speed-to-Market
+
+In an industry where menus and prices change daily, waiting weeks for a developer is unacceptable.
+
+* **Instant Website Generation:** Our provisioning engine builds a fully functional, SEO-optimized ordering website in seconds.
+* **Immediate Control:** A restaurant owner can sign up, upload their menu, and start taking orders during the same service.
+
+### C. Zero Barrier to Entry (No Special Tools)
+
+We eliminated the hardware and software hurdles that often block digitalization in hospitality.
+
+* **No "App Fatigue":** Customers do not need to download an app or create an account to order. It’s just a URL.
+* **Hardware Agnostic:** Kitchen staff don't need expensive proprietary POS terminals. The Kitchen Display System (KDS) runs effortlessly on any device with a browser—from a $50 generic Android tablet to an old laptop or smartphone.
+
+### D. True White-Label Identity (The "Chameleon" Engine)
+
+Most competitors offer a storefront that looks like *their* platform with a logo slapped on top.
+
+* **Our Edge:** The Stelly engine is a chameleon. Through our **Theme Presets**, the entire UI structure—fonts, colors, border radii, and layout density—morphs to match the restaurant's brand "vibe," making the technology feel invisible and indigenous to the restaurant.
+
+
+## 5. Target Market
+
+**Primary:** Independent Belgian Horeca (Friteries, Sushi, Pizzerias) that rely on Takeaway.
+**Specific Fit:** "Afhaal" (Takeaway) focus. As stated in our landing page: *"Puur Afhaal, Geen Delivery."* We target businesses that want to eliminate the chaos of phone orders and manual ticket writing.

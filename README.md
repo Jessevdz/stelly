@@ -1,121 +1,158 @@
-# Stelly
+# Stelly (Bestel Hier!)
 
-**A White-Label, Managed Micro-SaaS for Restaurant Order Management.**
+**The White-Label, Multi-Tenant Food Ordering Platform.**
 
-## 1. Developer Quickstart
+> **Vision:** "Your brand, your platform, your profits."
+> Stelly is a high-performance Micro-SaaS designed to give independent hospitality businesses digital sovereignty. It bridges the gap between expensive custom agency development and generic SaaS templates by providing a specialized, schema-isolated ordering system with a unified codebase.
 
-Follow these steps to get the Stelly Monorepo running locally using Docker and the provided validation scripts.
+---
+
+## 🚀 Key Features
+
+### 🏢 Architecture & Multi-Tenancy
+
+* **Schema-per-Tenant Isolation:** Data privacy is enforced at the database level. Every restaurant gets its own PostgreSQL schema (`tenant_pizza`, `tenant_burger`, etc.), preventing data leaks and simplifying GDPR compliance.
+* **Dynamic Routing:** The application middleware resolves the Tenant Context based on the `Host` header (e.g., `pizza.localhost` vs `burger.localhost`).
+* **Ephemeral Demo Engine:** A specialized logic flow allows users to generate instant, temporary "Sandbox" environments (`demo_xyz`) to test the platform without registration.
+
+### 🏪 Storefront
+
+* **"Chameleon" Theme Engine:** A sophisticated design system where fonts, colors, border radii, and layout density morph to match the brand vibe (`Mono Luxe`, `Fresh Market`, `Tech Ocean`) dynamically.
+* **Frictionless Cart:** A persistent cart drawer and floating action button designed for high-conversion mobile use.
+* **No-Login Checkout:** Optimized for guest checkout to reduce abandonment.
+
+### 👨‍🍳 Kitchen Display System (KDS)
+
+* **Real-Time Sync:** WebSockets push orders immediately from the Storefront to the Kitchen.
+* **Lane Management:** Drag-and-drop style workflow (Pending → Queued → Preparing → Ready).
+* **Wake Lock & Audio:** Optimized for always-on tablet devices in hot, noisy kitchens.
+
+### ⚙️ Admin & Management
+
+* **Menu Builder:** CRUD operations for Categories, Items, and Modifier Groups (e.g., "Extra Cheese").
+* **Live Preview:** Mobile-view preview within the admin panel to see changes in real-time.
+
+---
+
+## 🛠 Tech Stack
+
+### Backend (`apps/api`)
+
+* **Framework:** Python / FastAPI
+* **Database:** PostgreSQL (with SQLAlchemy & Alembic)
+* **Caching/Rate Limiting:** Redis
+* **Storage:** MinIO (S3 Compatible)
+* **Security:** Local JWT implementation with "Magic Token" support for demo sessions.
+
+### Frontend (`apps/web`)
+
+* **Framework:** React 19 / Vite
+* **Styling:** Tailwind CSS 4.0
+* **State:** Context API (Auth, Cart)
+* **Icons:** Lucide React
+
+### Infrastructure (`infra`)
+
+* **Reverse Proxy:** Nginx (Handles routing between API and Web based on subdomains).
+* **Containerization:** Docker & Docker Compose.
+
+---
+
+## ⚡️ Getting Started
 
 ### Prerequisites
+
 * Docker & Docker Compose
-* Python 3.10+ (for validation scripts)
-* Node.js 18+ (optional, if running frontend outside Docker)
+* Node.js (optional, for local frontend dev outside Docker)
 
-### Step 1: Configure Local DNS
-Since Stelly relies on subdomain/custom domain routing (e.g., `pizza.localhost`), you must map these domains to your local machine.
+### 1. Local DNS Setup
 
-Add the following to your `/etc/hosts` (macOS/Linux) or `C:\Windows\System32\drivers\etc\hosts` (Windows):
+To simulate multi-tenancy locally, add the following to your hosts file (`/etc/hosts` on macOS/Linux or `C:\Windows\System32\drivers\etc\hosts` on Windows):
 
 ```text
+127.0.0.1   stelly.localhost
+127.0.0.1   demo.stelly.localhost
+127.0.0.1   admin.stelly.localhost
 127.0.0.1   pizza.localhost
 127.0.0.1   burger.localhost
-127.0.0.1   stelly.localhost
 
 ```
 
-### Step 2: Boot the Stack
+### 2. Launch the Stack
 
-Run the entire platform (Postgres, FastAPI, React/Vite, Nginx) via Docker Compose:
+Run the entire platform with Docker Compose:
 
 ```bash
 docker-compose up --build
 
 ```
 
-*Wait until you see the `api` service log: "Application startup complete".*
+* **Database Init:** The `api` container will wait for Postgres, run migrations, and seed initial tenants (`Pizza Hut`, `Burger King`) and the Demo environment automatically via `prestart.sh`.
+* **MinIO Init:** The S3 bucket `stelly-assets` is automatically provisioned.
 
-### Step 3: Provision Tenants & Seed Data
+### 3. Access the Platform
 
-The database starts empty. Use the included Python script to create the schemas, seed menus, and simulate orders.
-
-```bash
-# In a new terminal window
-pip install requests
-python scripts/validate_mvp.py
-
-```
-
-### Step 4: Access the Interfaces
-
-Once the stack is up and the script has passed:
-
-| Interface | URL | Description |
+| Service | URL | Context |
 | --- | --- | --- |
-| **Pizza Hut Store** | http://pizza.localhost | Public customer storefront (Red Theme) |
-| **Burger King Store** | http://burger.localhost | Public customer storefront (Blue Theme) |
-| **Pizza Hut Kitchen** | http://pizza.localhost/kitchen| KDS for kitchen staff (Live WebSockets) |
-| **API Docs** | http://localhost:8000/docs| Swagger UI |
+| **Landing Page** | `http://stelly.localhost` | The marketing homepage. |
+| **Interactive Demo** | `http://demo.stelly.localhost` | The "Split View" experience (Store + KDS). |
+| **Pizza Tenant** | `http://pizza.localhost` | A seeded tenant example. |
+| **Burger Tenant** | `http://burger.localhost` | A seeded tenant example. |
+| **API Docs** | `http://api.stelly.localhost/docs` | Swagger UI (mapped via Nginx). |
+| **MinIO Console** | `http://localhost:9001` | Object storage admin (User/Pass: `minioadmin`). |
 
 ---
 
-## 2. Product Vision
+## 🧪 The "Split View" Demo
 
-**Stelly** is a production-grade, rapid-deployment order management platform designed for scale, isolation, and seamless branding.
+The project includes a unique **Split View** designed to demonstrate the real-time capabilities of the platform during sales calls or portfolio reviews.
 
-Unlike generic platforms, Stelly offers a **fully white-labeled experience**. The platform administrator can "spin up" a new restaurant instance instantly. Critical to our value proposition is that we support **Custom Domains** (e.g., `order.joespizza.com`) alongside subdomains, with the frontend automatically adapting to the restaurant's brand identity (colors, fonts, logos) and hardware environment.
-
-## 3. The Stelly Ecosystem (Stakeholders)
-
-The platform is divided into four distinct interaction contexts, each catering to a specific user persona within the tenant lifecycle.
-
-1. **The Super Admin (Platform Owner):**
-* **Goal:** Manage the SaaS business, provision new tenants, and monitor fleet health.
-* **Context:** Uses the **Global Admin Portal**. Decoupled from restaurant data.
+1. Navigate to **`http://demo.stelly.localhost`**.
+2. Click **"Start Demo"**. This generates a temporary, unique schema (`demo_<uuid>`) in the database.
+3. You will land on the **Split View**:
+* **Left Side:** The Customer Storefront.
+* **Right Side:** The Kitchen Display System (KDS).
 
 
-2. **The Restaurant Owner (Tenant):**
-* **Goal:** Manage menus, prices, and business hours.
-* **Context:** Uses the **Manager Dashboard**. Data is strictly isolated to their schema.
+4. **Action:** Place an order on the left. Watch it appear instantly on the right via WebSockets.
+5. **Theming:** Use the floating "Vibe" button to instantly swap the entire UI branding between presets.
 
+---
 
-3. **The Kitchen Staff (End User):**
-* **Goal:** View and fulfill orders in a high-stress, messy environment.
-* **Context:** Uses the **Kitchen Display System (KDS)** on tablets. Requires high reliability and offline resilience.
+## 📂 Project Structure
 
+```plaintext
+.
+├── apps
+│   ├── api                 # FastAPI Backend
+│   │   ├── app
+│   │   │   ├── api         # Endpoints (v1)
+│   │   │   ├── core        # Config, Security, Middleware
+│   │   │   ├── db          # Models & Session
+│   │   │   └── schemas     # Pydantic Models
+│   │   └── alembic         # DB Migrations
+│   └── web                 # React Frontend
+│       ├── src
+│       │   ├── components  # Reusable UI & Business Logic
+│       │   ├── context     # Global State
+│       │   ├── layouts     # Layout wrappers (Store, Tenant, Demo)
+│       │   ├── pages       # Route Views
+│       │   └── utils       # Helpers (Theming, Analytics)
+├── infra                   # Infrastructure Configs
+│   ├── nginx               # Reverse Proxy Configuration
+│   └── postgres            # Init SQL scripts
+└── docker-compose.yml      # Orchestration
 
-4. **The Hungry Customer (Public):**
-* **Goal:** Order food quickly on a mobile device.
-* **Context:** Uses the **Public Storefront**. Accessed via Custom Domains (e.g., `pizza.com`) with full brand immersion.
+```
 
-## 4. Technology Stack
+---
 
-### Frontend (Client)
+## 🛡 Security & Design Decisions
 
-* **Core:** React.js 18+ with Vite.
-* **Styling Engine:** **Tailwind CSS**.
-* **State Management:** Context API & Local Storage (MVP).
-* **Hardware Integration:** Usage of `navigator.wakeLock` API for KDS tablets and Web Audio API for alerts.
-
-### Backend (Server)
-
-* **Framework:** FastAPI (Python 3.11+).
-* **Database:** PostgreSQL 15+.
-* **Isolation Strategy:** **Schema-per-Tenant**.
-* **Real-time:** WebSockets for Kitchen Display System.
-
-## 5. Operational Workflow: Onboarding a New Client
-
-### Step 1: Provisioning
-
-The Super Admin hits `POST /api/v1/sys/provision`.
-
-1. **Public Config:** The server inserts a record into the `public.tenants` table.
-2. **Schema Generation:** The server triggers `CREATE SCHEMA tenant_x`.
-3. **Table Hydration:** SQLAlchemy models create tables within that schema.
-4. **Seeding:** Default menu items and admin users are created.
-
-### Step 2: Verification
-
-1. Admin visits `http://newtenant.localhost`.
-2. The Edge Layer resolves the Host header.
-3. The Frontend loads, injecting the specific theme and displaying the specific menu.
+1. **Context Middleware (`TenantMiddleware`):**
+The API intercepts every request, reads the `Host` header, looks up the tenant in the `public.tenants` table, and sets the PostgreSQL `search_path` to that tenant's schema. This ensures strict data isolation at runtime.
+2. **NullPool Database Connections:**
+SQLAlchemy is configured with `NullPool` to prevent connection bleeding between requests. Each request creates a fresh connection context to guarantee the correct schema is active.
+3. **Authentication:**
+* **Standard:** OAuth2 flow (ready for integration with Authentik/Keycloak).
+* **Demo Mode:** Uses custom "Magic Tokens" (HS256) containing a specific `target_schema` claim, allowing the API to route requests to ephemeral demo schemas without permanent user records.
