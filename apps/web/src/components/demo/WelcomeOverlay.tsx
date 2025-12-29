@@ -40,7 +40,7 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ currentStep, onS
     // --- CONTENT CONFIG ---
     const content = [
         {
-            title: "Welkom bij Bestel Hier!",
+            title: "Welkom bij Pakmee.be!",
             text: "Dit is een live demonstratie van ons bestelplatform. We leggen snel uit hoe het werkt.",
             icon: <MonitorPlay size={48} className="text-blue-500" />,
             action: "Start Tour"

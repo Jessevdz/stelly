@@ -140,12 +140,12 @@ const PhoneMockup = () => (
         <div className="h-[46px] w-[3px] bg-gray-800 absolute -start-[13px] top-[178px] rounded-s-lg"></div>
         <div className="h-[64px] w-[3px] bg-gray-800 absolute -end-[13px] top-[142px] rounded-e-lg"></div>
         <div className="rounded-[2rem] overflow-hidden w-full h-full bg-white flex flex-col relative">
-            {/* Header / Hero inside Phone */}
-            <div className="bg-blue-600 h-32 w-full p-4 text-white flex flex-col justify-end relative">
-                <div className="absolute top-0 right-0 p-4 opacity-50"><ShoppingBag size={16} /></div>
-                <div className="font-bold text-lg">Bistro Stelly</div>
+            <div className="bg-blue-600 h-24 w-full p-4 text-white flex flex-col justify-end relative">
+                <div className="absolute top-0 right-0 p-3 opacity-50"><ShoppingBag size={16} /></div>
+                <div className="font-bold text-lg leading-tight">Bistro Stelly</div>
                 <div className="text-[10px] opacity-80">Open tot 23:00</div>
             </div>
+
             {/* Menu Items */}
             <div className="flex-1 p-3 space-y-3 overflow-hidden bg-gray-50">
                 <div className="flex gap-2 items-center bg-white p-2 rounded-xl shadow-sm border border-gray-100">
@@ -214,7 +214,7 @@ export const LandingPage = () => {
                     strokeWidth={2.5}
                 />
             </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900 leading-none mt-0.5">Bestel Hier!</span>
+            <span className="font-bold text-xl tracking-tight text-slate-900 leading-none mt-0.5">Pakmee.be!</span>
         </div>
     );
 
@@ -280,7 +280,7 @@ export const LandingPage = () => {
                             <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1] animate-in slide-in-from-bottom-4 duration-700 delay-100">
                                 Jouw eigen bestelplatform<br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                                    Zonder gedoe.
+                                    Zonder gedoe
                                 </span>
                             </h1>
 
@@ -450,7 +450,7 @@ export const LandingPage = () => {
                                     <div>
                                         <h3 className="font-bold text-slate-900 text-lg mb-1">Puur Afhaal, Geen Delivery</h3>
                                         <p className="text-slate-500 text-sm leading-relaxed">
-                                            Geen gedoe met koeriers of koude maaltijden. Bestel Hier! is voor klanten die zelf komen afhalen.
+                                            Geen gedoe met koeriers of koude maaltijden. Pakmee.be! is voor klanten die zelf komen afhalen.
                                         </p>
                                     </div>
                                 </div>
