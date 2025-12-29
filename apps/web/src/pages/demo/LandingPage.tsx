@@ -190,31 +190,38 @@ export const LandingPage = () => {
         navigate('/demo/split');
     };
 
-    // --- NEW SUBTLE LOGO COMPONENT ---
+    // --- NEW BELGIAN TAKEOUT LOGO COMPONENT ---
     const StellyLogo = ({ className = "" }: { className?: string }) => (
         <div className={`flex items-center gap-2.5 cursor-pointer group ${className}`} onClick={() => navigate('/')}>
-            {/* The Layered Hexagon Icon */}
-            <div className="relative w-7 h-7">
-                {/* 1. Red Base Layer (Shadow) */}
-                <Hexagon
-                    className="absolute top-[2px] left-[2px] text-red-600 fill-red-600 opacity-90"
-                    size={27}
-                    strokeWidth={0}
-                />
-                {/* 2. Yellow Middle Layer (Fill) */}
-                <Hexagon
-                    className="absolute top-[1px] left-[1px] text-yellow-400 fill-yellow-400"
+            {/* The Layered Bag Icon */}
+            <div className="relative w-8 h-8">
+                {/* 1. Red Base Layer (Shadow/Depth) */}
+                {/* Represents the Red in the Belgian flag & adds depth */}
+                <ShoppingBag
+                    className="absolute top-[3px] left-[3px] text-red-600 fill-red-600 opacity-90 transition-transform duration-300 group-hover:translate-x-[1px] group-hover:translate-y-[1px]"
                     size={26}
                     strokeWidth={0}
                 />
-                {/* 3. Black Top Layer (Outline Structure) */}
-                <Hexagon
+
+                {/* 2. Yellow Middle Layer (The 'Fries/Gold' Fill) */}
+                {/* Represents the Yellow in the Belgian flag */}
+                <ShoppingBag
+                    className="absolute top-[1.5px] left-[1.5px] text-yellow-400 fill-yellow-400 transition-transform duration-300 group-hover:translate-x-[0.5px] group-hover:translate-y-[0.5px]"
+                    size={26}
+                    strokeWidth={0}
+                />
+
+                {/* 3. Black Top Layer (Structure/Outline) */}
+                {/* Represents the Black in the Belgian flag & provides high contrast */}
+                <ShoppingBag
                     className="relative z-10 text-slate-900 fill-none"
                     size={26}
                     strokeWidth={2.5}
                 />
             </div>
-            <span className="font-bold text-xl tracking-tight text-slate-900 leading-none mt-0.5">Pakmee.be!</span>
+            <span className="font-bold text-xl tracking-tight text-slate-900 leading-none mt-0.5 group-hover:text-blue-600 transition-colors">
+                Pakmee.be!
+            </span>
         </div>
     );
 
