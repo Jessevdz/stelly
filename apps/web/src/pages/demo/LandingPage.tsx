@@ -17,7 +17,6 @@ import {
     PhoneOff,
     ShoppingBag,
     Smartphone,
-    Star
 } from 'lucide-react';
 import { trackEvent } from '../../utils/analytics';
 
