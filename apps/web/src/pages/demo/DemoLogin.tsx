@@ -55,7 +55,7 @@ export const DemoLogin: React.FC<DemoLoginProps> = ({ onLogin }) => {
 
     // Reusing the StellyLogo component from LandingPage for consistency
     const StellyLogo = ({ className = "" }: { className?: string }) => (
-        <div className={`flex items-center gap-2.5 cursor-pointer group ${className}`} onClick={() => navigate('/')}>
+        <div className={`flex items-center gap-2.5 cursor-pointer group ${className}`}>
             {/* The Layered Bag Icon */}
             <div className="relative w-8 h-8">
                 {/* 1. Red Base Layer (Shadow/Depth) */}
