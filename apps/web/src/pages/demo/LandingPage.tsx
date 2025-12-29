@@ -15,7 +15,9 @@ import {
     Send,
     User,
     PhoneOff,
-    ShoppingBag
+    ShoppingBag,
+    Smartphone,
+    Star
 } from 'lucide-react';
 import { trackEvent } from '../../utils/analytics';
 
@@ -129,6 +131,57 @@ const LeadCaptureForm = () => {
     );
 };
 
+// --- CSS PHONE MOCKUP COMPONENT ---
+// This provides visual context immediately without relying on external assets
+const PhoneMockup = () => (
+    <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[10px] rounded-[2.5rem] h-[400px] w-[240px] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 duration-1000 delay-200">
+        <div className="h-[32px] w-[3px] bg-gray-800 absolute -start-[13px] top-[72px] rounded-s-lg"></div>
+        <div className="h-[46px] w-[3px] bg-gray-800 absolute -start-[13px] top-[124px] rounded-s-lg"></div>
+        <div className="h-[46px] w-[3px] bg-gray-800 absolute -start-[13px] top-[178px] rounded-s-lg"></div>
+        <div className="h-[64px] w-[3px] bg-gray-800 absolute -end-[13px] top-[142px] rounded-e-lg"></div>
+        <div className="rounded-[2rem] overflow-hidden w-full h-full bg-white flex flex-col relative">
+            {/* Header / Hero inside Phone */}
+            <div className="bg-blue-600 h-32 w-full p-4 text-white flex flex-col justify-end relative">
+                <div className="absolute top-0 right-0 p-4 opacity-50"><ShoppingBag size={16} /></div>
+                <div className="font-bold text-lg">Bistro Stelly</div>
+                <div className="text-[10px] opacity-80">Open tot 23:00</div>
+            </div>
+            {/* Menu Items */}
+            <div className="flex-1 p-3 space-y-3 overflow-hidden bg-gray-50">
+                <div className="flex gap-2 items-center bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center text-xl">🍔</div>
+                    <div className="flex-1">
+                        <div className="h-2 w-16 bg-gray-800 rounded-full mb-1"></div>
+                        <div className="h-1.5 w-8 bg-blue-500 rounded-full"></div>
+                    </div>
+                    <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg"><ArrowRight size={12} /></div>
+                </div>
+                <div className="flex gap-2 items-center bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                    <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center text-xl">🍟</div>
+                    <div className="flex-1">
+                        <div className="h-2 w-12 bg-gray-800 rounded-full mb-1"></div>
+                        <div className="h-1.5 w-8 bg-blue-500 rounded-full"></div>
+                    </div>
+                    <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg"><ArrowRight size={12} /></div>
+                </div>
+                <div className="flex gap-2 items-center bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                    <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center text-xl">🥤</div>
+                    <div className="flex-1">
+                        <div className="h-2 w-14 bg-gray-800 rounded-full mb-1"></div>
+                        <div className="h-1.5 w-8 bg-blue-500 rounded-full"></div>
+                    </div>
+                    <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg"><ArrowRight size={12} /></div>
+                </div>
+            </div>
+            {/* Floating Action Button inside Phone */}
+            <div className="absolute bottom-4 left-4 right-4 bg-black text-white p-3 rounded-full flex justify-between items-center shadow-lg text-xs font-bold">
+                <span>1 Item</span>
+                <span>€12.50</span>
+            </div>
+        </div>
+    </div>
+);
+
 export const LandingPage = () => {
     const navigate = useNavigate();
 
@@ -194,7 +247,7 @@ export const LandingPage = () => {
             <main className="relative z-10 pt-32 pb-20">
 
                 {/* --- Hero Section --- */}
-                <section className="max-w-5xl mx-auto px-6 text-center mb-32">
+                {/* <section className="max-w-5xl mx-auto px-6 text-center mb-32">
 
                     <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1] animate-in slide-in-from-bottom-4 duration-700">
                         Jouw eigen bestelplatform. <br className="hidden md:block" />
@@ -213,6 +266,58 @@ export const LandingPage = () => {
                             Probeer De Demo
                             <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
                         </button>
+                    </div>
+                </section> */}
+
+                {/* --- 1. HERO SECTION (Optimized for 5-Second Rule) --- */}
+                <section className="max-w-7xl mx-auto px-6 mb-24">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+                        {/* LEFT: Copy & CTA */}
+                        <div className="text-center lg:text-left order-1">
+
+                            {/* Headline: Concrete USP */}
+                            <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1] animate-in slide-in-from-bottom-4 duration-700 delay-100">
+                                Jouw eigen bestelplatform<br />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                                    Zonder gedoe.
+                                </span>
+                            </h1>
+
+                            {/* Subhead: Clarity */}
+                            <p className="text-lg md:text-xl text-slate-500 font-medium mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed animate-in slide-in-from-bottom-6 duration-700 delay-200">
+                                Zet jouw horecazaak onmiddellijk online, zonder de hoge kosten.
+                            </p>
+
+                            {/* CTA: Next Step */}
+                            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-in slide-in-from-bottom-8 duration-700 delay-300">
+                                <button
+                                    onClick={handleStartDemo}
+                                    className="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white font-bold rounded-full text-lg hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    Start Demo
+                                    <ArrowRight size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* RIGHT: Visual Proof (Phone Mockup) */}
+                        <div className="order-2 flex justify-center lg:justify-end relative">
+                            {/* Decorative Blob */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-blue-400/20 rounded-full blur-[80px] -z-10 animate-pulse"></div>
+                            <PhoneMockup />
+
+                            {/* Floating "Notification" Badge for extra context */}
+                            <div className="absolute top-1/4 -right-4 md:right-10 bg-white p-3 rounded-xl shadow-xl border border-gray-100 flex items-center gap-3 animate-in slide-in-from-right duration-700 delay-500 max-w-[200px]">
+                                <div className="bg-green-100 text-green-600 p-2 rounded-full">
+                                    <Smartphone size={18} />
+                                </div>
+                                <div>
+                                    <div className="text-xs text-slate-400 font-bold uppercase">Nieuwe Bestelling</div>
+                                    <div className="text-sm font-bold text-slate-900">€ 45,00 ontvangen</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
