@@ -30,18 +30,21 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({ categories, activeCate
     }, [activeCategory]);
 
     const scrollToCategory = (id: string) => {
-        // 1. Trigger parent callback (to pause scroll spy)
+        // 1. Trigger parent callback (to pause scroll spy & update active state)
         if (onCategorySelect) {
             onCategorySelect(id);
         }
 
         // 2. Perform Scroll
-        const element = document.getElementById(`cat-${id}`);
-        if (element) {
-            // FIX: Use scrollIntoView instead of window.scrollTo
-            // This supports both the main window and nested containers (like SplitView)
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        // FIX: Wrap in setTimeout to prevent conflict with the 'useEffect' scroll above.
+        // If both fire simultaneously (Nav Button Scroll + Page Scroll), browsers may cancel one.
+        setTimeout(() => {
+            const element = document.getElementById(`cat-${id}`);
+            if (element) {
+                // Use scrollIntoView to support nested scroll containers (like in SplitView)
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 10);
     };
 
     return (
