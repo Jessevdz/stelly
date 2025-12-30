@@ -16,7 +16,7 @@ export const DemoLayout = () => {
     const isDemoDomain =
         window.location.hostname.includes('demo') ||
         window.location.hostname.includes('localhost') ||
-        window.location.hostname === 'bestel.blackforge.be';
+        window.location.hostname === 'pakmee.blackforge.be';
     const { config: initialConfig } = useTenantConfig();
 
     // 2. State

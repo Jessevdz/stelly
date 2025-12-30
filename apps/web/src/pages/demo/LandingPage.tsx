@@ -251,29 +251,6 @@ export const LandingPage = () => {
 
             <main className="relative z-10 pt-32 pb-20">
 
-                {/* --- Hero Section --- */}
-                {/* <section className="max-w-5xl mx-auto px-6 text-center mb-32">
-
-                    <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1] animate-in slide-in-from-bottom-4 duration-700">
-                        Jouw eigen bestelplatform. <br className="hidden md:block" />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Zonder gedoe.</span>
-                    </h1>
-
-                    <p className="text-xl text-slate-500 font-normal mb-10 max-w-2xl mx-auto leading-relaxed animate-in slide-in-from-bottom-6 duration-700 delay-100">
-                        Zet jouw horecazaak onmiddellijk online. Geen rinkelende telefoons of vergeten e-mails meer. Gewoon koken en inpakken.
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in slide-in-from-bottom-8 duration-700 delay-200">
-                        <button
-                            onClick={handleStartDemo}
-                            className="w-full sm:w-auto group relative px-8 py-4 bg-blue-600 text-white font-bold rounded-full text-lg hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30 transition-all active:scale-95 flex items-center justify-center gap-2"
-                        >
-                            Probeer De Demo
-                            <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
-                        </button>
-                    </div>
-                </section> */}
-
                 {/* --- 1. HERO SECTION (Optimized for 5-Second Rule) --- */}
                 <section className="max-w-7xl mx-auto px-6 mb-24">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -577,9 +554,15 @@ export const LandingPage = () => {
                     <div className="flex items-center justify-center gap-2 mb-6 opacity-80">
                         <StellyLogo />
                     </div>
-                    <p className="text-slate-400 text-sm">
+                    <p className="text-slate-400 text-sm mb-4">
                         Gemaakt voor de Belgische horeca.
                     </p>
+                    <div className="flex items-center justify-center gap-2 text-slate-500 text-sm">
+                        <Mail size={16} />
+                        <a href="mailto:pakmee@blackforge.be" className="hover:text-blue-600 transition-colors font-medium">
+                            pakmee@blackforge.be
+                        </a>
+                    </div>
                 </footer>
             </main>
         </div>
